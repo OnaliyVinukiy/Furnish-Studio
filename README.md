@@ -5,6 +5,8 @@ Below is a `README.md` file written in Markdown format for your `FurnitureDesign
 # Furniture Design App
 
 ![Java](https://img.shields.io/badge/Java-17-orange)
+
+![Java](https://img.shields.io/badge/Java-22-orange)
 ![Swing](https://img.shields.io/badge/UI-Swing-blue)
 
 The **Furniture Design App** is a Java-based desktop application built using the Swing framework. It allows users to create virtual room designs, add furniture (chairs and tables), and visualize them in both 2D and 3D views. Users can customize furniture properties such as position, size, color, and shading, and save or load their designs.
