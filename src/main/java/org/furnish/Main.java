@@ -1,8 +1,9 @@
 package org.furnish;
 
+import javax.swing.SwingUtilities;
+
 public class Main {
     public static void main(String[] args) {
-        FurnitureDesignApp app = new FurnitureDesignApp();
-        app.setVisible(true);
+        SwingUtilities.invokeLater(() -> new OnboardingScreen().setVisible(true));
     }
 }
