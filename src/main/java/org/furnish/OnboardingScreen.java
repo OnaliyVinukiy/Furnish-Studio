@@ -1,6 +1,9 @@
 package org.furnish;
 
 import javax.swing.*;
+
+import org.furnish.utils.CloseButtonUtil;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -37,7 +40,7 @@ public class OnboardingScreen extends JFrame {
         mainPanel.setLayout(new BorderLayout());
         add(mainPanel);
 
-        JButton closeButton = createCloseButton();
+        JButton closeButton = CloseButtonUtil.createCloseButton();
 
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         topPanel.setOpaque(false);
@@ -116,47 +119,6 @@ public class OnboardingScreen extends JFrame {
         footer.setHorizontalAlignment(SwingConstants.CENTER);
         footer.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
         mainPanel.add(footer, BorderLayout.SOUTH);
-    }
-
-    // Custom close button
-    private JButton createCloseButton() {
-
-        JButton closeButton = new JButton();
-        closeButton.setContentAreaFilled(false);
-        closeButton.setBorderPainted(false);
-        closeButton.setFocusPainted(false);
-        closeButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-
-        try {
-
-            ImageIcon closeIcon = new ImageIcon(getClass().getResource("./images/close.png"));
-            if (closeIcon.getImage() != null) {
-                closeButton.setIcon(closeIcon);
-            } else {
-                closeButton.setText("✕");
-                closeButton.setFont(new Font("Arial", Font.PLAIN, 18));
-            }
-        } catch (Exception e) {
-            closeButton.setText("✕");
-            closeButton.setFont(new Font("Arial", Font.PLAIN, 18));
-        }
-
-        closeButton.setForeground(Color.WHITE);
-        closeButton.setRolloverEnabled(true);
-
-        // Hover effect
-        closeButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                closeButton.setForeground(new Color(255, 100, 100));
-            }
-
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                closeButton.setForeground(Color.WHITE);
-            }
-        });
-
-        closeButton.addActionListener(e -> System.exit(0));
-        return closeButton;
     }
 
     // Custom rounded button class
