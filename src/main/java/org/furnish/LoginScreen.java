@@ -2,6 +2,7 @@ package org.furnish;
 
 import javax.swing.*;
 
+import org.furnish.ui.FurnitureDesignApp;
 import org.furnish.utils.CloseButtonUtil;
 
 import java.awt.*;
