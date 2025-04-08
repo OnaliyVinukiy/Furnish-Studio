@@ -228,6 +228,104 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 legThickness);
     }
 
+    private void drawBed3D(GL2 gl, Furniture f) {
+        Color baseColor = f.getColor();
+        Color frameColor = baseColor.darker();
+        Color legColor = new Color(70, 50, 30);
+        Color mattressColor = new Color(240, 240, 250);
+        Color pillowColor = new Color(255, 255, 255);
+        Color sheetColor = new Color(220, 230, 255);
+
+        float bedX = (float) f.getX();
+        float bedZ = (float) f.getZ();
+        float bedWidth = (float) f.getWidth();
+        float bedDepth = (float) f.getDepth();
+        float bedHeight = (float) f.getHeight();
+
+        // Dimensions
+        float frameThickness = 0.15f;
+        float mattressHeight = bedHeight * 0.25f;
+        float headboardHeight = bedHeight * 0.7f;
+        float legHeight = bedHeight * 0.1f;
+        float pillowWidth = bedWidth * 0.4f;
+        float pillowDepth = bedDepth * 0.15f;
+        float pillowHeight = mattressHeight * 0.3f;
+        int slices = 8;
+
+        // Draw Bed Frame
+        setColor(gl, frameColor);
+        drawRoundedCube(gl, bedX, legHeight, bedZ,
+                bedWidth, frameThickness, bedDepth,
+                frameThickness * 0.5f, slices);
+
+        // Draw Headboard
+        setColor(gl, frameColor);
+        drawRoundedCube(gl, bedX, legHeight, bedZ - frameThickness * 0.5f,
+                bedWidth, headboardHeight, frameThickness * 1.5f,
+                frameThickness * 0.7f, slices);
+
+        // Draw Mattress
+        setColor(gl, mattressColor);
+
+        drawRoundedCube(gl, bedX + frameThickness * 0.5f,
+                legHeight + frameThickness,
+                bedZ + frameThickness * 0.5f,
+                bedWidth - frameThickness,
+                mattressHeight,
+                bedDepth * 1.05f - frameThickness,
+                frameThickness * 0.8f, slices);
+
+        // Draw Sheet
+        setColor(gl, sheetColor);
+        drawRoundedCube(gl, bedX + frameThickness * 0.5f,
+                legHeight + frameThickness + mattressHeight * 0.7f,
+                bedZ + frameThickness * 0.5f,
+                bedWidth - frameThickness,
+                mattressHeight * 0.3f,
+                bedDepth - frameThickness,
+                frameThickness * 0.8f, slices);
+
+        // Draw Pillows
+        setColor(gl, pillowColor);
+        // First pillow
+        drawRoundedCube(gl, bedX + (bedWidth - pillowWidth) / 2,
+                legHeight + frameThickness + mattressHeight,
+                bedZ + frameThickness * 2f,
+                pillowWidth,
+                pillowHeight,
+                pillowDepth,
+                pillowHeight * 0.5f, slices);
+
+        // Second pillow
+        drawRoundedCube(gl, bedX + (bedWidth - pillowWidth) / 2,
+                legHeight + frameThickness + mattressHeight,
+                bedZ + frameThickness * 2f + pillowDepth * 0.8f,
+                pillowWidth,
+                pillowHeight,
+                pillowDepth,
+                pillowHeight * 0.5f, slices);
+
+        // Draw Legs
+        setColor(gl, legColor);
+        float legThickness = frameThickness * 1.2f;
+
+        // Front Left Leg
+        drawCylinder(gl, bedX + legThickness, 0, bedZ + legThickness,
+                legThickness * 0.5f, legHeight, slices);
+
+        // Front Right Leg
+        drawCylinder(gl, bedX + bedWidth - legThickness, 0, bedZ + legThickness,
+                legThickness * 0.5f, legHeight, slices);
+
+        // Back Left Leg
+        drawCylinder(gl, bedX + legThickness, 0, bedZ + bedDepth - legThickness,
+                legThickness * 0.5f, legHeight, slices);
+
+        // Back Right Leg
+        drawCylinder(gl, bedX + bedWidth - legThickness, 0, bedZ + bedDepth - legThickness,
+                legThickness * 0.5f, legHeight, slices);
+    }
+
     private void drawSofa3D(GL2 gl, Furniture f) {
         Color fabricColor = f.getColor();
         Color darkFabric = fabricColor.darker();
