@@ -228,6 +228,57 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 legThickness);
     }
 
+    private void drawSofa3D(GL2 gl, Furniture f) {
+        Color fabricColor = f.getColor();
+        Color darkFabric = fabricColor.darker();
+        Color cushionColor = fabricColor.brighter();
+        Color legColor = new Color(70, 50, 30);
+
+        float x = (float) f.getX();
+        float z = (float) f.getZ();
+        float w = (float) f.getWidth();
+        float d = (float) f.getDepth() * 0.3f;
+        float h = (float) f.getHeight();
+
+        float legH = h * 0.15f;
+        float seatH = h * 0.12f;
+        float cushionH = h * 0.12f;
+        float backH = h * 0.45f;
+        float armW = w * 0.08f;
+        int slices = 16;
+
+        // Base Seat Platform
+        setColor(gl, darkFabric);
+        drawRoundedCube(gl, x, legH, z, w, seatH, d, 0.03f, slices);
+
+        // Seat Cushions
+        float gap = w * 0.015f;
+        float cWidth = (w - 4 * gap) / 3;
+        setColor(gl, cushionColor);
+        for (int i = 0; i < 3; i++) {
+            drawRoundedCube(gl, x + gap * (i + 1) + cWidth * i, legH + seatH, z + d * 0.05f,
+                    cWidth, cushionH, d * 0.9f, 0.04f, slices);
+        }
+
+        // Backrest
+        setColor(gl, fabricColor);
+        drawRoundedCube(gl, x + armW * 0.5f, legH + seatH + cushionH, z + d * 0.01f,
+                w - armW, backH, d * 0.12f, 0.04f, slices);
+
+        // Armrests
+        setColor(gl, darkFabric);
+        drawRoundedCube(gl, x, legH + seatH, z, armW, backH, d, 0.05f, slices);
+        drawRoundedCube(gl, x + w - armW, legH + seatH, z, armW, backH, d, 0.05f, slices);
+
+        // Legs
+        setColor(gl, legColor);
+        float legR = w * 0.015f;
+        drawCylinder(gl, x + legR, 0, z + legR, legR, legH, slices);
+        drawCylinder(gl, x + w - legR * 2, 0, z + legR, legR, legH, slices);
+        drawCylinder(gl, x + legR, 0, z + d - legR * 2, legR, legH, slices);
+        drawCylinder(gl, x + w - legR * 2, 0, z + d - legR * 2, legR, legH, slices);
+    }
+
     // Helper method to draw rounded cubes
     private void drawRoundedCube(GL2 gl, float x, float y, float z,
             float width, float height, float depth,
