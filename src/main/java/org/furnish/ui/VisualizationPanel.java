@@ -135,6 +135,10 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 drawChair3D(gl, f);
             } else if (f.getType().equals("Table")) {
                 drawTable3D(gl, f);
+            } else if (f.getType().equals("Sofa")) {
+                drawSofa3D(gl, f);
+            } else if (f.getType().equals("Bed")) {
+                drawBed3D(gl, f);
             } else {
 
                 setColor(gl, f.getColor());
