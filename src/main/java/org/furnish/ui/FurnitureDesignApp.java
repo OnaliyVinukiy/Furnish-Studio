@@ -15,6 +15,10 @@ public class FurnitureDesignApp extends JFrame {
     private Furniture selectedFurniture;
     private JLabel statusLabel;
     private JToggleButton view2D3DToggle;
+    private double zoomFactor = 1.0;
+    private static final double ZOOM_STEP = 0.1;
+    private static final double MIN_ZOOM = 0.5;
+    private static final double MAX_ZOOM = 3.0;
 
     public FurnitureDesignApp() {
         initializeModernUI();
@@ -23,6 +27,26 @@ public class FurnitureDesignApp extends JFrame {
         setupPanels();
         setupStatusBar();
     }
+    public void zoomIn() {
+        zoomFactor += ZOOM_STEP;
+        if (zoomFactor > MAX_ZOOM) {
+            zoomFactor = MAX_ZOOM;
+        }
+        repaint();
+    }
+    
+    public void zoomOut() {
+        zoomFactor -= ZOOM_STEP;
+        if (zoomFactor < MIN_ZOOM) {
+            zoomFactor = MIN_ZOOM;
+        }
+        repaint();
+    }
+    public void resetView() {
+        zoomFactor = 1.0;
+        repaint();
+    }
+    
 
     private void initializeModernUI() {
         setTitle("Furnish Studio - Designer");
