@@ -27,6 +27,7 @@ public class FurnitureDesignApp extends JFrame {
         setupPanels();
         setupStatusBar();
     }
+
     public void zoomIn() {
         zoomFactor += ZOOM_STEP;
         if (zoomFactor > MAX_ZOOM) {
@@ -34,7 +35,7 @@ public class FurnitureDesignApp extends JFrame {
         }
         repaint();
     }
-    
+
     public void zoomOut() {
         zoomFactor -= ZOOM_STEP;
         if (zoomFactor < MIN_ZOOM) {
@@ -42,11 +43,11 @@ public class FurnitureDesignApp extends JFrame {
         }
         repaint();
     }
+
     public void resetView() {
         zoomFactor = 1.0;
         repaint();
     }
-    
 
     private void initializeModernUI() {
         setTitle("Furnish Studio - Designer");
@@ -164,8 +165,8 @@ public class FurnitureDesignApp extends JFrame {
                 createStyledMenuItem("Add Chair", "../images/close.png", e -> addFurniture("Chair")),
                 createStyledMenuItem("Add Table", "../images/close.png", e -> addFurniture("Table")),
                 createStyledMenuItem("Add Sofa", "../images/close.png", e -> addFurniture("Sofa")),
-                createStyledMenuItem("Add Cabinet", "../images/close.png", e -> addFurniture("Cabinet")));
-
+                createStyledMenuItem("Add Cabinet", "../images/close.png", e -> addFurniture("Cabinet")),
+                createStyledMenuItem("Add Bed", "../images/close.png", e -> addFurniture("Bed")));
         menuBar.add(fileMenu);
         menuBar.add(editMenu);
         menuBar.add(viewMenu);
@@ -319,7 +320,7 @@ public class FurnitureDesignApp extends JFrame {
 
         JSplitPane splitPane = new JSplitPane(
                 JSplitPane.HORIZONTAL_SPLIT,
-                new JScrollPane(visualizationPanel),
+                visualizationPanel,
                 propertiesPanel);
         splitPane.setDividerLocation(800);
         splitPane.setDividerSize(3);
@@ -349,7 +350,7 @@ public class FurnitureDesignApp extends JFrame {
         getContentPane().add(statusPanel, BorderLayout.SOUTH);
     }
 
-    private void updateStatus(String message) {
+    void updateStatus(String message) {
         statusLabel.setText(message);
     }
 
@@ -359,7 +360,10 @@ public class FurnitureDesignApp extends JFrame {
         if (dialog.isOk()) {
             currentDesign = new Design(dialog.getRoom());
             visualizationPanel.setDesign(currentDesign);
-            updateStatus("New design created with room dimensions: " + dialog.getRoom());
+            visualizationPanel.set3DView(false);
+            view2D3DToggle.setSelected(false);
+            view2D3DToggle.setText("2D View");
+            updateStatus("New room created: " + dialog.getRoom().toString());
             repaint();
         }
     }
@@ -415,19 +419,28 @@ public class FurnitureDesignApp extends JFrame {
             return;
         }
 
+        Room room = currentDesign.getRoom();
         Color defaultColor = type.equals("Chair") ? new Color(180, 120, 70)
                 : type.equals("Table") ? new Color(150, 100, 50)
-                        : type.equals("Sofa") ? new Color(120, 80, 180) : new Color(100, 150, 100);
+                        : type.equals("Sofa") ? new Color(120, 80, 180)
+                                : type.equals("Bed") ? new Color(100, 150, 100)
+                                        : type.equals("Cabinet") ? new Color(139, 69, 19)
+                                                : Color.GRAY;
 
-        Furniture f = new Furniture(
-                type,
-                1.0, 0, 1.0,
-                type.equals("Chair") ? 1.0 : type.equals("Table") ? 2.0 : type.equals("Sofa") ? 1.8 : 1.5,
-                type.equals("Chair") ? 1.0 : type.equals("Table") ? 0.8 : type.equals("Sofa") ? 0.7 : 1.2,
-                defaultColor);
+        double width = type.equals("Chair") ? 0.5
+                : type.equals("Table") ? 1.0 : type.equals("Sofa") ? 1.2 : type.equals("Bed") ? 1.5 : 0.8;
+        double depth = type.equals("Chair") ? 0.5
+                : type.equals("Table") ? 0.8 : type.equals("Sofa") ? 0.6 : type.equals("Bed") ? 2.0 : 0.4;
+        double height = type.equals("Chair") ? 0.8
+                : type.equals("Table") ? 0.7 : type.equals("Sofa") ? 0.6 : type.equals("Bed") ? 0.5 : 1.0;
 
+        double x = (room.getLength() - width) / 2;
+        double z = (room.getWidth() - depth) / 2;
+
+        Furniture f = new Furniture(type, x, z, width, depth, height, defaultColor);
         currentDesign.addFurniture(f);
-        updateStatus("Added " + type + " to the design");
+        setSelectedFurniture(f);
+        updateStatus("Added " + type + " to the design at (" + x + ", " + z + ")");
         repaint();
     }
 
