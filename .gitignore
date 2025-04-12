@@ -1,7 +1,9 @@
 # Ignore class files
 *.class
+*.lst
 
 # Ignore build folders
 /out/
 /build/
 /target/
+target/
