@@ -1,14 +1,15 @@
 package org.furnish.core;
 
-import java.awt.*;
-import java.io.Serializable;
+import java.awt.Color;
 
-public class Room implements Serializable {
-    private double length, width, height;
-    private Color floorColor, wallColor;
+public class Room {
+    private double length;
+    private double width;
+    private double height;
+    private Color floorColor;
+    private Color wallColor;
 
-    public Room(double length, double width, double height,
-            Color floorColor, Color wallColor) {
+    public Room(double length, double width, double height, Color floorColor, Color wallColor) {
         this.length = length;
         this.width = width;
         this.height = height;
@@ -16,6 +17,7 @@ public class Room implements Serializable {
         this.wallColor = wallColor;
     }
 
+    // Getters and setters
     public double getLength() {
         return length;
     }
@@ -34,5 +36,18 @@ public class Room implements Serializable {
 
     public Color getWallColor() {
         return wallColor;
+    }
+
+    public void setFloorColor(Color floorColor) {
+        this.floorColor = floorColor;
+    }
+
+    public void setWallColor(Color wallColor) {
+        this.wallColor = wallColor;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%.1fm x %.1fm x %.1fm", length, width, height);
     }
 }
