@@ -292,6 +292,11 @@ public class PropertiesPanel extends JPanel {
 
         try {
             double value = Double.parseDouble(field.getText());
+            if (value <= 0) {
+                showError("Size must be positive.");
+                updateField(field);
+                return;
+            }
 
             if (field == xField)
                 furniture.setX(value);
@@ -306,7 +311,6 @@ public class PropertiesPanel extends JPanel {
 
             repaintParent();
         } catch (NumberFormatException ex) {
-            // Reset to current value
             showError("Please enter a valid number");
             updateField(field);
         }
@@ -335,6 +339,12 @@ public class PropertiesPanel extends JPanel {
             double width = Double.parseDouble(widthField.getText());
             double depth = Double.parseDouble(depthField.getText());
             double height = Double.parseDouble(heightField.getText());
+
+            if (width <= 0 || depth <= 0 || height <= 0) {
+                showError("All sizes must be positive.");
+                update(furniture);
+                return;
+            }
 
             furniture.setX(x);
             furniture.setZ(z);

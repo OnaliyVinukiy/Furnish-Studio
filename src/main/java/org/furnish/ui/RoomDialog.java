@@ -4,67 +4,60 @@ import org.furnish.core.Room;
 import javax.swing.*;
 import java.awt.*;
 
-public class RoomDialog extends JDialog {
+class RoomDialog extends JDialog {
     private JTextField lengthField, widthField, heightField;
     private JButton floorColorButton, wallColorButton;
-    private Color floorColor = Color.LIGHT_GRAY;
-    private Color wallColor = Color.WHITE;
+    private Color floorColor = Color.LIGHT_GRAY, wallColor = Color.WHITE;
     private boolean ok = false;
 
     public RoomDialog(JFrame parent) {
         super(parent, "New Room", true);
-        initializeDialog();
-        setupInputFields();
-    }
+        setLayout(new GridLayout(0, 2, 10, 10));
+        setSize(300, 250);
+        setLocationRelativeTo(parent);
 
-    private void initializeDialog() {
-        setLayout(new GridLayout(0, 2));
-        setSize(300, 200);
-    }
-
-    private void setupInputFields() {
-        // Length
-        add(new JLabel("Length:"));
+        add(new JLabel("Length (m):"));
         lengthField = new JTextField("5.0", 5);
         add(lengthField);
 
-        // Width
-        add(new JLabel("Width:"));
+        add(new JLabel("Width (m):"));
         widthField = new JTextField("5.0", 5);
         add(widthField);
 
-        // Height
-        add(new JLabel("Height:"));
+        add(new JLabel("Height (m):"));
         heightField = new JTextField("3.0", 5);
         add(heightField);
 
-        // Floor Color
         add(new JLabel("Floor Color:"));
         floorColorButton = new JButton("Choose");
+        floorColorButton.setBackground(floorColor);
         floorColorButton.addActionListener(e -> {
-            Color c = JColorChooser.showDialog(
-                    this, "Choose Floor Color", floorColor);
-            if (c != null)
+            Color c = JColorChooser.showDialog(this, "Choose Floor Color", floorColor);
+            if (c != null) {
                 floorColor = c;
+                floorColorButton.setBackground(c);
+            }
         });
         add(floorColorButton);
 
-        // Wall Color
         add(new JLabel("Wall Color:"));
         wallColorButton = new JButton("Choose");
+        wallColorButton.setBackground(wallColor);
         wallColorButton.addActionListener(e -> {
-            Color c = JColorChooser.showDialog(
-                    this, "Choose Wall Color", wallColor);
-            if (c != null)
+            Color c = JColorChooser.showDialog(this, "Choose Wall Color", wallColor);
+            if (c != null) {
                 wallColor = c;
+                wallColorButton.setBackground(c);
+            }
         });
         add(wallColorButton);
 
-        // Buttons
         JButton okButton = new JButton("OK");
         okButton.addActionListener(e -> {
-            ok = true;
-            setVisible(false);
+            if (validateInputs()) {
+                ok = true;
+                setVisible(false);
+            }
         });
         add(okButton);
 
@@ -73,18 +66,32 @@ public class RoomDialog extends JDialog {
         add(cancelButton);
     }
 
+    private boolean validateInputs() {
+        try {
+            double length = Double.parseDouble(lengthField.getText());
+            double width = Double.parseDouble(widthField.getText());
+            double height = Double.parseDouble(heightField.getText());
+            if (length <= 0 || width <= 0 || height <= 0) {
+                JOptionPane.showMessageDialog(this, "Dimensions must be positive numbers.", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+            return true;
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Please enter valid numbers for dimensions.", "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+
     public boolean isOk() {
         return ok;
     }
 
     public Room getRoom() {
-        try {
-            double length = Double.parseDouble(lengthField.getText());
-            double width = Double.parseDouble(widthField.getText());
-            double height = Double.parseDouble(heightField.getText());
-            return new Room(length, width, height, floorColor, wallColor);
-        } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("Invalid room dimensions");
-        }
+        double length = Double.parseDouble(lengthField.getText());
+        double width = Double.parseDouble(widthField.getText());
+        double height = Double.parseDouble(heightField.getText());
+        return new Room(length, width, height, floorColor, wallColor);
     }
 }
