@@ -12,7 +12,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
     private Design design;
     private FurnitureDesignApp parent;
     private Furniture draggedFurniture;
-    private Point dragStartPoint;
+    private Point dragOffset;
     private float rotationX = 0;
     private float rotationY = 0;
     private double lastMouseX, lastMouseY;
@@ -24,9 +24,8 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         super(new GLCapabilities(GLProfile.get(GLProfile.GL2)));
         this.parent = parent;
         initializePanel();
-        setupListeners();
+        setupMouseListeners();
 
-        // Set up animator for continuous rendering
         animator = new FPSAnimator(this, 60);
         animator.start();
     }
@@ -61,11 +60,19 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         gl.glRotatef(rotationY, 0.0f, 1.0f, 0.0f);
 
         if (design != null) {
+            Room room = design.getRoom();
+            float scaleX = getWidth() / (float) room.getLength();
+            float scaleY = getHeight() / (float) room.getWidth();
+
+            gl.glPushMatrix();
             if (is3DView) {
+                gl.glScalef(1.0f, 1.0f, 1.0f);
                 draw3D(gl);
             } else {
+                gl.glTranslatef((float) (-room.getLength() / 2), (float) (-room.getWidth() / 2), 0f);
                 draw2D(gl);
             }
+            gl.glPopMatrix();
         }
     }
 
@@ -86,26 +93,146 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         Room room = design.getRoom();
         gl.glDisable(GL2.GL_DEPTH_TEST);
 
-        // Draw floor
         setColor(gl, room.getFloorColor());
-        drawRect(gl, 0f, 0f, 0f,
-                (float) room.getLength(),
-                (float) room.getWidth(),
-                0f);
+        drawRect(gl, 0f, 0f, 0f, (float) room.getLength(), (float) room.getWidth(), 0f);
 
-        // Draw furniture
         for (Furniture f : design.getFurnitureList()) {
             setColor(gl, f.getColor());
-            drawRect(gl,
-                    (float) f.getX(),
-                    (float) f.getZ(),
-                    0f,
-                    (float) f.getWidth(),
-                    (float) f.getDepth(),
-                    0f);
+            float x = (float) f.getX();
+            float z = (float) f.getZ();
+            float w = (float) f.getWidth();
+            float d = (float) f.getDepth();
+
+            if (f.getType().equals("Chair"))
+                drawChair2D(gl, x, z, w, d);
+            else if (f.getType().equals("Table"))
+                drawTable2D(gl, x, z, w, d);
+            else if (f.getType().equals("Sofa"))
+                drawSofa2D(gl, x, z, w, d);
+            else if (f.getType().equals("Bed"))
+                drawBed2D(gl, x, z, w, d);
+            else if (f.getType().equals("Cabinet"))
+                drawCabinet2D(gl, x, z, w, d);
+            else
+                drawRect(gl, x, z, 0f, w, d, 0f);
         }
 
         gl.glEnable(GL2.GL_DEPTH_TEST);
+    }
+
+    // 2D drawing for chair
+    private void drawChair2D(GL2 gl, float x, float z, float w, float d) {
+        gl.glBegin(GL2.GL_QUADS);
+        // Seat
+        gl.glVertex3f(x, z, 0f);
+        gl.glVertex3f(x + w, z, 0f);
+        gl.glVertex3f(x + w, z + d * 0.8f, 0f);
+        gl.glVertex3f(x, z + d * 0.8f, 0f);
+        // Backrest
+        gl.glVertex3f(x + w * 0.1f, z + d * 0.8f, 0f);
+        gl.glVertex3f(x + w * 0.9f, z + d * 0.8f, 0f);
+        gl.glVertex3f(x + w * 0.9f, z + d, 0f);
+        gl.glVertex3f(x + w * 0.1f, z + d, 0f);
+        gl.glEnd();
+    }
+
+    // 2D drawing for table
+    private void drawTable2D(GL2 gl, float x, float z, float w, float d) {
+
+        gl.glBegin(GL2.GL_QUADS);
+        // Tabletop
+        gl.glVertex3f(x, z, 0f);
+        gl.glVertex3f(x + w, z, 0f);
+        gl.glVertex3f(x + w, z + d, 0f);
+        gl.glVertex3f(x, z + d, 0f);
+        gl.glEnd();
+
+        // Legs
+        float legSize = w * 0.1f;
+        setColor(gl, Color.DARK_GRAY);
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glVertex3f(x, z, 0f);
+        gl.glVertex3f(x + legSize, z, 0f);
+        gl.glVertex3f(x + legSize, z + legSize, 0f);
+        gl.glVertex3f(x, z + legSize, 0f);
+
+        gl.glVertex3f(x + w - legSize, z, 0f);
+        gl.glVertex3f(x + w, z, 0f);
+        gl.glVertex3f(x + w, z + legSize, 0f);
+        gl.glVertex3f(x + w - legSize, z + legSize, 0f);
+
+        gl.glVertex3f(x, z + d - legSize, 0f);
+        gl.glVertex3f(x + legSize, z + d - legSize, 0f);
+        gl.glVertex3f(x + legSize, z + d, 0f);
+        gl.glVertex3f(x, z + d, 0f);
+
+        gl.glVertex3f(x + w - legSize, z + d - legSize, 0f);
+        gl.glVertex3f(x + w, z + d - legSize, 0f);
+        gl.glVertex3f(x + w, z + d, 0f);
+        gl.glVertex3f(x + w - legSize, z + d, 0f);
+        gl.glEnd();
+    }
+
+    // 2D drawing for sofa
+    private void drawSofa2D(GL2 gl, float x, float z, float w, float d) {
+
+        gl.glBegin(GL2.GL_QUADS);
+        // Base
+        gl.glVertex3f(x, z, 0f);
+        gl.glVertex3f(x + w, z, 0f);
+        gl.glVertex3f(x + w, z + d * 0.6f, 0f);
+        gl.glVertex3f(x, z + d * 0.6f, 0f);
+        // Backrest
+        gl.glVertex3f(x, z + d * 0.6f, 0f);
+        gl.glVertex3f(x + w, z + d * 0.6f, 0f);
+        gl.glVertex3f(x + w, z + d, 0f);
+        gl.glVertex3f(x, z + d, 0f);
+        // Left armrest
+        gl.glVertex3f(x, z + d * 0.2f, 0f);
+        gl.glVertex3f(x + w * 0.2f, z + d * 0.2f, 0f);
+        gl.glVertex3f(x + w * 0.2f, z + d * 0.8f, 0f);
+        gl.glVertex3f(x, z + d * 0.8f, 0f);
+        // Right armrest
+        gl.glVertex3f(x + w - w * 0.2f, z + d * 0.2f, 0f);
+        gl.glVertex3f(x + w, z + d * 0.2f, 0f);
+        gl.glVertex3f(x + w, z + d * 0.8f, 0f);
+        gl.glVertex3f(x + w - w * 0.2f, z + d * 0.8f, 0f);
+        gl.glEnd();
+    }
+
+    // 2D drawing for bed
+    private void drawBed2D(GL2 gl, float x, float z, float w, float d) {
+        gl.glBegin(GL2.GL_QUADS);
+        // Mattress
+        gl.glVertex3f(x, z, 0f);
+        gl.glVertex3f(x + w, z, 0f);
+        gl.glVertex3f(x + w, z + d * 0.8f, 0f);
+        gl.glVertex3f(x, z + d * 0.8f, 0f);
+        // Headboard
+        gl.glVertex3f(x, z + d * 0.8f, 0f);
+        gl.glVertex3f(x + w, z + d * 0.8f, 0f);
+        gl.glVertex3f(x + w, z + d, 0f);
+        gl.glVertex3f(x, z + d, 0f);
+        gl.glEnd();
+    }
+
+    // 2D drawing for cabinet
+    private void drawCabinet2D(GL2 gl, float x, float z, float w, float d) {
+
+        gl.glBegin(GL2.GL_QUADS);
+        // Body
+        gl.glVertex3f(x, z, 0f);
+        gl.glVertex3f(x + w, z, 0f);
+        gl.glVertex3f(x + w, z + d, 0f);
+        gl.glVertex3f(x, z + d, 0f);
+        gl.glEnd();
+
+        // Handles
+        setColor(gl, Color.BLACK);
+        gl.glBegin(GL2.GL_LINES);
+        gl.glVertex3f(x + w * 0.4f, z + d * 0.5f, 0f);
+        gl.glVertex3f(x + w * 0.6f, z + d * 0.5f, 0f);
+        gl.glEnd();
     }
 
     private void draw3D(GL2 gl) {
@@ -153,6 +280,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         }
     }
 
+    // 3D drawing for chair
     private void drawChair3D(GL2 gl, Furniture f) {
         Color baseColor = f.getColor();
         Color darkColor = baseColor.darker();
@@ -196,6 +324,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
     }
 
+    // 3D drawing for table
     private void drawTable3D(GL2 gl, Furniture f) {
         Color baseColor = f.getColor();
         Color legColor = baseColor.darker();
@@ -232,6 +361,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 legThickness);
     }
 
+    // 3D drawing for bed
     private void drawBed3D(GL2 gl, Furniture f) {
         Color baseColor = f.getColor();
         Color frameColor = baseColor.darker();
@@ -330,6 +460,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 legThickness * 0.5f, legHeight, slices);
     }
 
+    // 3D drawing for sofa
     private void drawSofa3D(GL2 gl, Furniture f) {
         Color fabricColor = f.getColor();
         Color darkFabric = fabricColor.darker();
@@ -397,7 +528,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         drawBox(gl, x, y, z + radius, radius, height, depth - 2 * radius);
         drawBox(gl, x + width - radius, y, z + radius, radius, height, depth - 2 * radius);
 
-        // 8 corner cylinders (for rounded edges)
+        // 8 corner cylinders
         for (int i = 0; i < 4; i++) {
             float cx = (i % 2 == 0) ? x + radius : x + width - radius;
             float cz = (i < 2) ? z + radius : z + depth - radius;
@@ -450,43 +581,30 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
     private void drawBox(GL2 gl, float x, float y, float z, float width, float height, float depth) {
         gl.glBegin(GL2.GL_QUADS);
-
-        // Front
         gl.glVertex3f(x, y, z + depth);
         gl.glVertex3f(x + width, y, z + depth);
         gl.glVertex3f(x + width, y + height, z + depth);
         gl.glVertex3f(x, y + height, z + depth);
-
-        // Back
         gl.glVertex3f(x, y, z);
         gl.glVertex3f(x + width, y, z);
         gl.glVertex3f(x + width, y + height, z);
         gl.glVertex3f(x, y + height, z);
-
-        // Left
         gl.glVertex3f(x, y, z);
         gl.glVertex3f(x, y, z + depth);
         gl.glVertex3f(x, y + height, z + depth);
         gl.glVertex3f(x, y + height, z);
-
-        // Right
         gl.glVertex3f(x + width, y, z);
         gl.glVertex3f(x + width, y, z + depth);
         gl.glVertex3f(x + width, y + height, z + depth);
         gl.glVertex3f(x + width, y + height, z);
-
-        // Top
         gl.glVertex3f(x, y + height, z);
         gl.glVertex3f(x + width, y + height, z);
         gl.glVertex3f(x + width, y + height, z + depth);
         gl.glVertex3f(x, y + height, z + depth);
-
-        // Bottom
         gl.glVertex3f(x, y, z);
         gl.glVertex3f(x + width, y, z);
         gl.glVertex3f(x + width, y, z + depth);
         gl.glVertex3f(x, y, z + depth);
-
         gl.glEnd();
     }
 
@@ -503,67 +621,201 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         gl.glColor3f(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f);
     }
 
-    private void setupListeners() {
+    private void setupMouseListeners() {
+        setFocusable(true);
+        requestFocusInWindow();
+
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                handleMousePress(e);
+                if (!hasFocus()) {
+                    requestFocusInWindow();
+                    System.out.println("Regained focus on mouse press");
+                }
+                lastMouseX = e.getX();
+                lastMouseY = e.getY();
+                if (design != null && !is3DView) {
+                    Room room = design.getRoom();
+                    float scale = Math.min(getWidth() / (float) room.getLength(),
+                            getHeight() / (float) room.getWidth()) * 0.8f;
+
+                    System.out.println("Mouse pressed at (" + e.getX() + ", " + e.getY() + "), Scale: " + scale);
+                    draggedFurniture = null;
+
+                    // Calculate panel center with scale applied
+                    float panelCenterX = getWidth() / 2f;
+                    float panelCenterY = getHeight() / 2f;
+
+                    // Calculate room center in scaled coordinates
+                    float roomCenterX = (float) (room.getLength() / 2) * scale;
+                    float roomCenterY = (float) (room.getWidth() / 2) * scale;
+
+                    for (Furniture f : design.getFurnitureList()) {
+                        // Calculate furniture position relative to room center
+                        float x = (float) f.getX() * scale - roomCenterX + panelCenterX;
+                        float z = (float) f.getZ() * scale - roomCenterY + panelCenterY;
+                        float w = (float) f.getWidth() * scale;
+                        float d = (float) f.getDepth() * scale;
+
+                        float adjustedD = f.getType().equals("Sofa") ? d * 0.6f : d;
+
+                        System.out.println(f.getType() + " bounds: (" + x + ", " + z + ") to (" + (x + w) + ", "
+                                + (z + adjustedD) + ")");
+
+                        if (e.getX() >= x && e.getX() <= x + w &&
+                                e.getY() >= z && e.getY() <= z + adjustedD) {
+                            draggedFurniture = f;
+                            dragOffset = new Point(e.getX(), e.getY());
+                            parent.setSelectedFurniture(f);
+                            System.out.println("Selected " + f.getType() + " at (" + f.getX() + ", " + f.getZ() + ")");
+                            break;
+                        }
+                    }
+
+                    if (draggedFurniture == null) {
+                        System.out.println("No furniture selected at (" + e.getX() + ", " + e.getY() + ")");
+                    } else {
+                        System.out.println("Drag offset initialized to: (" + dragOffset.x + ", " + dragOffset.y + ")");
+                    }
+                }
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
                 draggedFurniture = null;
             }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (!hasFocus()) {
+                    requestFocusInWindow();
+                    System.out.println("Regained focus on click");
+                }
+            }
         });
 
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
+            public void mouseMoved(MouseEvent e) {
+                if (design != null && !is3DView) {
+                    float scale = Math.min(getWidth() / (float) design.getRoom().getLength(),
+                            getHeight() / (float) design.getRoom().getWidth()) * 0.8f;
+                    boolean overFurniture = false;
+                    for (Furniture f : design.getFurnitureList()) {
+                        float x = (float) (f.getX() - design.getRoom().getLength() / 2) * scale;
+                        float z = (float) (f.getZ() - design.getRoom().getWidth() / 2) * scale;
+                        float w = (float) f.getWidth() * scale;
+                        float d = (float) f.getDepth() * scale;
+
+                        float panelCenterX = getWidth() / 2f;
+                        float panelCenterY = getHeight() / 2f;
+                        x += panelCenterX;
+                        z += panelCenterY;
+
+                        float adjustedD = f.getType().equals("Sofa") ? d : d;
+
+                        if (e.getX() >= x && e.getX() <= x + w && e.getY() >= z && e.getY() <= z + adjustedD) {
+                            overFurniture = true;
+                            break;
+                        }
+                    }
+                    setCursor(
+                            overFurniture ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
+                }
+            }
+
+            @Override
             public void mouseDragged(MouseEvent e) {
-                handleMouseDrag(e);
+                if (is3DView && draggedFurniture == null) {
+                    double deltaX = e.getX() - lastMouseX;
+                    double deltaY = e.getY() - lastMouseY;
+                    rotationY += deltaX * 0.5f;
+                    rotationX += deltaY * 0.5f;
+                    repaint();
+                } else if (!is3DView && draggedFurniture != null) {
+                    Room room = design.getRoom();
+                    float scale = Math.min(getWidth() / (float) room.getLength(),
+                            getHeight() / (float) room.getWidth()) * 0.8f;
+
+                    double deltaX = e.getX() - dragOffset.x;
+                    double deltaY = e.getY() - dragOffset.y;
+                    double newX = draggedFurniture.getX() + deltaX / scale;
+                    double newZ = draggedFurniture.getZ() + deltaY / scale;
+
+                    // Constrain to room boundaries
+                    newX = Math.max(0, Math.min(newX, room.getLength() - draggedFurniture.getWidth()));
+                    newZ = Math.max(0, Math.min(newZ, room.getWidth() - draggedFurniture.getDepth()));
+
+                    draggedFurniture.setX(newX);
+                    draggedFurniture.setZ(newZ);
+                    parent.propertiesPanel.update(draggedFurniture);
+                    System.out.println("Dragging " + draggedFurniture.getType() + " to (" + newX + ", " + newZ + ")");
+
+                    dragOffset = new Point(e.getX(), e.getY());
+                    repaint();
+                }
+                lastMouseX = e.getX();
+                lastMouseY = e.getY();
             }
         });
-    }
 
-    private void handleMousePress(MouseEvent e) {
-        lastMouseX = e.getX();
-        lastMouseY = e.getY();
-        // Add picking logic here if needed
-    }
+        addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                System.out.println("VisualizationPanel gained focus");
+            }
 
-    private void handleMouseDrag(MouseEvent e) {
-        double deltaX = e.getX() - lastMouseX;
-        double deltaY = e.getY() - lastMouseY;
-
-        if (is3DView && draggedFurniture == null) {
-            rotationY += deltaX * 0.5f;
-            rotationX += deltaY * 0.5f;
-        }
-
-        lastMouseX = e.getX();
-        lastMouseY = e.getY();
+            @Override
+            public void focusLost(FocusEvent e) {
+                System.out.println("VisualizationPanel lost focus");
+            }
+        });
     }
 
     public void setDesign(Design design) {
         this.design = design;
         rotationX = 0;
         rotationY = 0;
+        repaint();
     }
 
     public void set3DView(boolean is3DView) {
         this.is3DView = is3DView;
+        System.out.println("View mode set to: " + (is3DView ? "3D" : "2D"));
+        repaint();
     }
 
     public void zoomIn() {
         zoomFactor *= 1.1f;
+        repaint();
     }
 
     public void zoomOut() {
         zoomFactor /= 1.1f;
+        repaint();
     }
 
     public void resetView() {
         zoomFactor = 1.0f;
         rotationX = 0;
         rotationY = 0;
+        repaint();
+    }
+}
+
+class Point2D {
+    private double x, y;
+
+    public Point2D(double x, double y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public double getX() {
+        return x;
+    }
+
+    public double getY() {
+        return y;
     }
 }
