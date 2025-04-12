@@ -8,6 +8,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.RoundRectangle2D;
+import java.awt.image.BufferedImage;
+import java.net.URL;
 
 public class OnboardingScreen extends JFrame {
     public OnboardingScreen() {
@@ -54,7 +56,20 @@ public class OnboardingScreen extends JFrame {
         contentPanel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
 
         // App logo
-        ImageIcon logoIcon = new ImageIcon(getClass().getResource("./images/sofa.png"));
+//        ImageIcon logoIcon = new ImageIcon(getClass().getResource("./images/sofa.png"));
+
+        ImageIcon logoIcon = null;
+        URL imageUrl = getClass().getResource("/images/sofa.png");
+
+        if (imageUrl != null) {
+            logoIcon = new ImageIcon(imageUrl);
+        } else {
+            // If image is not found, print an error and use a blank image (transparent)
+            System.err.println("Image not found!");
+
+            // Create a blank (transparent) 100x100 image
+            logoIcon = new ImageIcon(new BufferedImage(100, 100, BufferedImage.TYPE_INT_ARGB));
+        }
         JLabel logo = new JLabel(logoIcon);
         logo.setAlignmentX(Component.CENTER_ALIGNMENT);
 
