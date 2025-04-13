@@ -35,6 +35,9 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         addGLEventListener(this);
     }
 
+
+
+
     @Override
     public void init(GLAutoDrawable drawable) {
         GL2 gl = drawable.getGL().getGL2();
@@ -284,7 +287,28 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
     }
 
     private void draw3D(GL2 gl) {
+        if (design == null) return;
+
         Room room = design.getRoom();
+
+        // Enable lighting for better 3D effect
+        enableLighting(gl);
+        
+        // Draw floor
+        drawFloor(gl, room);
+
+        // Draw walls (4 walls to form a complete room)
+        drawWalls(gl, room);
+        
+        // Draw furniture (keep your existing furniture drawing code)
+        drawFurniture(gl);
+        
+        // Disable lighting if you don't need it for other elements
+        disableLighting(gl);
+
+
+        
+
 
         // Draw floor
         setColor(gl, room.getFloorColor());
@@ -327,6 +351,140 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
             }
         }
     }
+
+    // refactor --
+
+    private void enableLighting(GL2 gl) {
+        float[] lightAmbient = {0.5f, 0.5f, 0.5f, 1.0f};
+        float[] lightDiffuse = {0.7f, 0.7f, 0.7f, 1.0f};
+        float[] lightSpecular = {1.0f, 1.0f, 1.0f, 1.0f};
+        float[] lightPosition = {0.0f, 10.0f, 0.0f, 1.0f};
+
+        gl.glEnable(GL2.GL_LIGHTING);
+        gl.glEnable(GL2.GL_LIGHT0);
+        
+        gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, lightAmbient, 0);
+        gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, lightDiffuse, 0);
+        gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, lightSpecular, 0);
+        gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, lightPosition, 0);
+        
+        gl.glEnable(GL2.GL_COLOR_MATERIAL);
+        gl.glColorMaterial(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
+    }
+    private void disableLighting(GL2 gl) {
+        gl.glDisable(GL2.GL_LIGHTING);
+        gl.glDisable(GL2.GL_LIGHT0);
+    }
+
+    private void drawFloor(GL2 gl, Room room) {
+        setColor(gl, room.getFloorColor());
+        
+        float length = (float) room.getLength();
+        float width = (float) room.getWidth();
+        
+        // Draw floor as a quad
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glNormal3f(0, 1, 0); // Normal pointing up
+        gl.glVertex3f(0, 0, 0);
+        gl.glVertex3f(length, 0, 0);
+        gl.glVertex3f(length, 0, width);
+        gl.glVertex3f(0, 0, width);
+        gl.glEnd();
+        
+        // // Optional: Add grid lines for better visibility
+        // setColor(gl, Color.DARK_GRAY);
+        // gl.glBegin(GL2.GL_LINES);
+        // float gridSize = 1.0f; // 1 meter grid
+        // for (float x = 0; x <= length; x += gridSize) {
+        //     gl.glVertex3f(x, 0.01f, 0);
+        //     gl.glVertex3f(x, 0.01f, width);
+        // }
+        // for (float z = 0; z <= width; z += gridSize) {
+        //     gl.glVertex3f(0, 0.01f, z);
+        //     gl.glVertex3f(length, 0.01f, z);
+        // }
+        // gl.glEnd();
+    }
+
+    private void drawWalls(GL2 gl, Room room) {
+        setColor(gl, room.getWallColor());
+        
+        float length = (float) room.getLength();
+        float width = (float) room.getWidth();
+        float height = (float) room.getHeight();
+        float borderThickness = 0.02f; // Thin border line
+        
+        // Draw two connected walls forming a corner
+        gl.glBegin(GL2.GL_QUADS);
+        
+        // Wall 1 (Front wall - along length)
+        gl.glNormal3f(0, 0, 1);
+        gl.glVertex3f(0, 0, 0);
+        gl.glVertex3f(length, 0, 0);
+        gl.glVertex3f(length, height, 0);
+        gl.glVertex3f(0, height, 0);
+        
+        // Wall 2 (Left wall - along width, connected to Wall 1)
+        gl.glNormal3f(-1, 0, 0);
+        gl.glVertex3f(0, 0, 0);
+        gl.glVertex3f(0, 0, width);
+        gl.glVertex3f(0, height, width);
+        gl.glVertex3f(0, height, 0);
+        
+        gl.glEnd();
+    
+        // Draw border lines
+        setColor(gl, Color.BLACK); // Border color
+        gl.glLineWidth(2.0f); // Slightly thicker line for border
+        
+        // Border for front wall
+        gl.glBegin(GL2.GL_LINE_LOOP);
+        gl.glVertex3f(0, 0, -borderThickness);
+        gl.glVertex3f(length, 0, -borderThickness);
+        gl.glVertex3f(length, height, -borderThickness);
+        gl.glVertex3f(0, height, -borderThickness);
+        gl.glEnd();
+        
+        // Border for left wall
+        gl.glBegin(GL2.GL_LINE_LOOP);
+        gl.glVertex3f(-borderThickness, 0, 0);
+        gl.glVertex3f(-borderThickness, 0, width);
+        gl.glVertex3f(-borderThickness, height, width);
+        gl.glVertex3f(-borderThickness, height, 0);
+        gl.glEnd();
+        
+        // Reset line width
+        gl.glLineWidth(1.0f);
+    }
+    
+
+    private void drawFurniture(GL2 gl) {
+        // Keep your existing furniture drawing code here
+        for (Furniture f : design.getFurnitureList()) {
+            if (f.getType().equals("Chair")) {
+                drawChair3D(gl, f);
+            } else if (f.getType().equals("Table")) {
+                drawTable3D(gl, f);
+            } else if (f.getType().equals("Sofa")) {
+                drawSofa3D(gl, f);
+            } else if (f.getType().equals("Bed")) {
+                drawBed3D(gl, f);
+            } else {
+                setColor(gl, f.getColor());
+                drawBox(gl,
+                        (float) f.getX(),
+                        0f,
+                        (float) f.getZ(),
+                        (float) f.getWidth(),
+                        (float) f.getHeight(),
+                        (float) f.getDepth());
+            }
+        }
+    }
+
+    // end refactor --
+
+
 
     // 3D drawing for chair
     private void drawChair3D(GL2 gl, Furniture f) {

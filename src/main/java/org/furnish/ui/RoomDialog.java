@@ -12,23 +12,24 @@ class RoomDialog extends JDialog {
 
     public RoomDialog(JFrame parent) {
         super(parent, "New Room", true);
-        setLayout(new GridLayout(0, 2, 10, 10));
-        setSize(300, 250);
-        setLocationRelativeTo(parent);
-
-        add(new JLabel("Length (m):"));
+        
+        // Main panel with GridLayout (0, 2, 10, 10)
+        JPanel gridPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+        
+        // Add components to gridPanel
+        gridPanel.add(new JLabel("Length (m):"));
         lengthField = new JTextField("5.0", 5);
-        add(lengthField);
-
-        add(new JLabel("Width (m):"));
+        gridPanel.add(lengthField);
+    
+        gridPanel.add(new JLabel("Width (m):"));
         widthField = new JTextField("5.0", 5);
-        add(widthField);
-
-        add(new JLabel("Height (m):"));
+        gridPanel.add(widthField);
+    
+        gridPanel.add(new JLabel("Height (m):"));
         heightField = new JTextField("3.0", 5);
-        add(heightField);
-
-        add(new JLabel("Floor Color:"));
+        gridPanel.add(heightField);
+    
+        gridPanel.add(new JLabel("Floor Color:"));
         floorColorButton = new JButton("Choose");
         floorColorButton.setBackground(floorColor);
         floorColorButton.addActionListener(e -> {
@@ -38,9 +39,9 @@ class RoomDialog extends JDialog {
                 floorColorButton.setBackground(c);
             }
         });
-        add(floorColorButton);
-
-        add(new JLabel("Wall Color:"));
+        gridPanel.add(floorColorButton);
+    
+        gridPanel.add(new JLabel("Wall Color:"));
         wallColorButton = new JButton("Choose");
         wallColorButton.setBackground(wallColor);
         wallColorButton.addActionListener(e -> {
@@ -50,8 +51,8 @@ class RoomDialog extends JDialog {
                 wallColorButton.setBackground(c);
             }
         });
-        add(wallColorButton);
-
+        gridPanel.add(wallColorButton);
+    
         JButton okButton = new JButton("OK");
         okButton.addActionListener(e -> {
             if (validateInputs()) {
@@ -59,11 +60,21 @@ class RoomDialog extends JDialog {
                 setVisible(false);
             }
         });
-        add(okButton);
-
+        gridPanel.add(okButton);
+    
         JButton cancelButton = new JButton("Cancel");
         cancelButton.addActionListener(e -> setVisible(false));
-        add(cancelButton);
+        gridPanel.add(cancelButton);
+    
+        // Create a padding panel with EmptyBorder
+        JPanel paddingPanel = new JPanel(new BorderLayout());
+        paddingPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); 
+        paddingPanel.add(gridPanel, BorderLayout.CENTER);
+    
+        // Set the paddingPanel as the content pane
+        setContentPane(paddingPanel);
+        pack(); // Adjusts dialog size to fit components
+        setLocationRelativeTo(parent);
     }
 
     private boolean validateInputs() {
@@ -95,3 +106,6 @@ class RoomDialog extends JDialog {
         return new Room(length, width, height, floorColor, wallColor);
     }
 }
+
+
+
