@@ -20,6 +20,16 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
     private boolean is3DView = false;
     private FPSAnimator animator;
 
+    // refactor --
+
+    private float decorX = 0.01f; // Fixed to left wall
+    private float decorY = 0.5f;  // Normalized position (0-1)
+    private float decorZ = 0.5f;   // Normalized position (0-1)
+    private boolean isDraggingDecor = false;
+    private Point lastMousePos;
+
+    // refactor --
+
     public VisualizationPanel(FurnitureDesignApp parent) {
         super(new GLCapabilities(GLProfile.get(GLProfile.GL2)));
         this.parent = parent;
@@ -412,7 +422,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         float length = (float) room.getLength();
         float width = (float) room.getWidth();
         float height = (float) room.getHeight();
-        float borderThickness = 0.02f; // Thin border line
+        float borderThickness = 0.02f;
         
         // Draw two connected walls forming a corner
         gl.glBegin(GL2.GL_QUADS);
@@ -432,10 +442,10 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         gl.glVertex3f(0, height, 0);
         
         gl.glEnd();
-    
+        
         // Draw border lines
-        setColor(gl, Color.BLACK); // Border color
-        gl.glLineWidth(2.0f); // Slightly thicker line for border
+        setColor(gl, Color.BLACK);
+        gl.glLineWidth(2.0f);
         
         // Border for front wall
         gl.glBegin(GL2.GL_LINE_LOOP);
@@ -455,8 +465,53 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         
         // Reset line width
         gl.glLineWidth(1.0f);
+        
+        // Add decorative element to left wall (centered, inside the room)
+        float decorWidth = width * 0.3f;  // 30% of wall width
+        float decorHeight = height * 0.25f; // 25% of wall height
+        float decorYPos = height * 0.5f - decorHeight/2; // Vertical center
+        float decorZPos = width * 0.5f - decorWidth/2;   // Horizontal center
+        
+        // Decorative frame (slightly protruding into the room)
+        setColor(gl, new Color(150, 100, 50)); // Wooden frame color
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glNormal3f(1, 0, 0); // Flipped normal since it's inside
+        
+        // Frame top (now facing into the room)
+        gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos);
+        gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos + decorWidth);
+        gl.glVertex3f(0.01f, decorYPos + decorHeight - 0.1f, decorZPos + decorWidth);
+        gl.glVertex3f(0.01f, decorYPos + decorHeight - 0.1f, decorZPos);
+        
+        // Frame bottom
+        gl.glVertex3f(0.01f, decorYPos, decorZPos);
+        gl.glVertex3f(0.01f, decorYPos, decorZPos + decorWidth);
+        gl.glVertex3f(0.01f, decorYPos + 0.1f, decorZPos + decorWidth);
+        gl.glVertex3f(0.01f, decorYPos + 0.1f, decorZPos);
+        
+        // Frame left
+        gl.glVertex3f(0.01f, decorYPos, decorZPos);
+        gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos);
+        gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos + 0.1f);
+        gl.glVertex3f(0.01f, decorYPos, decorZPos + 0.1f);
+        
+        // Frame right
+        gl.glVertex3f(0.01f, decorYPos, decorZPos + decorWidth - 0.1f);
+        gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos + decorWidth - 0.1f);
+        gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos + decorWidth);
+        gl.glVertex3f(0.01f, decorYPos, decorZPos + decorWidth);
+        gl.glEnd();
+        
+        // Decorative panel inside frame (facing into the room)
+        setColor(gl, new Color(200, 180, 150)); // Light panel color
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glNormal3f(1, 0, 0); // Flipped normal
+        gl.glVertex3f(0.02f, decorYPos + 0.1f, decorZPos + 0.1f);
+        gl.glVertex3f(0.02f, decorYPos + decorHeight - 0.1f, decorZPos + 0.1f);
+        gl.glVertex3f(0.02f, decorYPos + decorHeight - 0.1f, decorZPos + decorWidth - 0.1f);
+        gl.glVertex3f(0.02f, decorYPos + 0.1f, decorZPos + decorWidth - 0.1f);
+        gl.glEnd();
     }
-    
 
     private void drawFurniture(GL2 gl) {
         // Keep your existing furniture drawing code here
