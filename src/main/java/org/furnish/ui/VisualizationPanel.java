@@ -104,7 +104,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
             float d = (float) f.getDepth();
 
             if (f.getType().equals("Chair"))
-                drawChair2D(gl, x, z, w, d);
+                drawChair2D(gl, x, z, w, d, f.getSubtype());
             else if (f.getType().equals("Table"))
                 drawTable2D(gl, x, z, w, d);
             else if (f.getType().equals("Sofa"))
@@ -121,18 +121,66 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
     }
 
     // 2D drawing for chair
-    private void drawChair2D(GL2 gl, float x, float z, float w, float d) {
+    private void drawChair2D(GL2 gl, float x, float z, float w, float d, String subtype) {
         gl.glBegin(GL2.GL_QUADS);
-        // Seat
-        gl.glVertex3f(x, z, 0f);
-        gl.glVertex3f(x + w, z, 0f);
-        gl.glVertex3f(x + w, z + d * 0.8f, 0f);
-        gl.glVertex3f(x, z + d * 0.8f, 0f);
-        // Backrest
-        gl.glVertex3f(x + w * 0.1f, z + d * 0.8f, 0f);
-        gl.glVertex3f(x + w * 0.9f, z + d * 0.8f, 0f);
-        gl.glVertex3f(x + w * 0.9f, z + d, 0f);
-        gl.glVertex3f(x + w * 0.1f, z + d, 0f);
+        switch (subtype) {
+            case "Standard":
+                // Seat
+                gl.glVertex3f(x, z, 0f);
+                gl.glVertex3f(x + w, z, 0f);
+                gl.glVertex3f(x + w, z + d * 0.8f, 0f);
+                gl.glVertex3f(x, z + d * 0.8f, 0f);
+                // Backrest
+                gl.glVertex3f(x + w * 0.1f, z + d * 0.8f, 0f);
+                gl.glVertex3f(x + w * 0.9f, z + d * 0.8f, 0f);
+                gl.glVertex3f(x + w * 0.9f, z + d, 0f);
+                gl.glVertex3f(x + w * 0.1f, z + d, 0f);
+                break;
+            case "Armchair":
+                // Seat
+                gl.glVertex3f(x + w * 0.1f, z + d * 0.1f, 0f);
+                gl.glVertex3f(x + w * 0.9f, z + d * 0.1f, 0f);
+                gl.glVertex3f(x + w * 0.9f, z + d * 0.7f, 0f);
+                gl.glVertex3f(x + w * 0.1f, z + d * 0.7f, 0f);
+                // Backrest
+                gl.glVertex3f(x + w * 0.1f, z + d * 0.7f, 0f);
+                gl.glVertex3f(x + w * 0.9f, z + d * 0.7f, 0f);
+                gl.glVertex3f(x + w * 0.9f, z + d, 0f);
+                gl.glVertex3f(x + w * 0.1f, z + d, 0f);
+                // Left armrest
+                gl.glVertex3f(x, z + d * 0.1f, 0f);
+                gl.glVertex3f(x + w * 0.1f, z + d * 0.1f, 0f);
+                gl.glVertex3f(x + w * 0.1f, z + d * 0.7f, 0f);
+                gl.glVertex3f(x, z + d * 0.7f, 0f);
+                // Right armrest
+                gl.glVertex3f(x + w * 0.9f, z + d * 0.1f, 0f);
+                gl.glVertex3f(x + w, z + d * 0.1f, 0f);
+                gl.glVertex3f(x + w, z + d * 0.7f, 0f);
+                gl.glVertex3f(x + w * 0.9f, z + d * 0.7f, 0f);
+                break;
+            case "Dining":
+                // Seat
+                gl.glVertex3f(x + w * 0.05f, z, 0f);
+                gl.glVertex3f(x + w * 0.95f, z, 0f);
+                gl.glVertex3f(x + w * 0.95f, z + d * 0.9f, 0f);
+                gl.glVertex3f(x + w * 0.05f, z + d * 0.9f, 0f);
+                // Backrest
+                gl.glVertex3f(x + w * 0.3f, z + d * 0.9f, 0f);
+                gl.glVertex3f(x + w * 0.7f, z + d * 0.9f, 0f);
+                gl.glVertex3f(x + w * 0.7f, z + d * 1.1f, 0f);
+                gl.glVertex3f(x + w * 0.3f, z + d * 1.1f, 0f);
+                break;
+            default:
+                // Fallback to standard chair
+                gl.glVertex3f(x, z, 0f);
+                gl.glVertex3f(x + w, z, 0f);
+                gl.glVertex3f(x + w, z + d * 0.8f, 0f);
+                gl.glVertex3f(x, z + d * 0.8f, 0f);
+                gl.glVertex3f(x + w * 0.1f, z + d * 0.8f, 0f);
+                gl.glVertex3f(x + w * 0.9f, z + d * 0.8f, 0f);
+                gl.glVertex3f(x + w * 0.9f, z + d, 0f);
+                gl.glVertex3f(x + w * 0.1f, z + d, 0f);
+        }
         gl.glEnd();
     }
 
@@ -291,37 +339,102 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         float chairWidth = (float) f.getWidth();
         float chairDepth = (float) f.getDepth();
         float chairHeight = (float) f.getHeight();
+        String subtype = f.getSubtype();
 
         float seatHeight = chairHeight * 0.5f;
         float seatThickness = chairHeight * 0.05f;
-        float backHeight = chairHeight * 0.7f;
-        float backThickness = chairWidth * 0.05f;
         float legThickness = chairWidth * 0.08f;
         float legHeight = seatHeight;
 
-        // Draw Seat
-        setColor(gl, baseColor);
-        drawBox(gl, chairX, seatHeight, chairZ, chairWidth, seatThickness, chairDepth);
+        switch (subtype) {
+            case "Standard":
+                // Seat
+                setColor(gl, baseColor);
+                drawBox(gl, chairX, seatHeight, chairZ, chairWidth, seatThickness, chairDepth);
+                // Backrest
+                float backHeight = chairHeight * 0.7f;
+                float backThickness = chairWidth * 0.05f;
+                drawBox(gl, chairX, seatHeight + seatThickness, chairZ, chairWidth, backHeight, backThickness);
+                // Legs
+                setColor(gl, legColor);
+                drawBox(gl, chairX, 0, chairZ, legThickness, legHeight, legThickness);
+                drawBox(gl, chairX + chairWidth - legThickness, 0, chairZ, legThickness, legHeight, legThickness);
+                drawBox(gl, chairX, 0, chairZ + chairDepth - legThickness, legThickness, legHeight, legThickness);
+                drawBox(gl, chairX + chairWidth - legThickness, 0, chairZ + chairDepth - legThickness, legThickness,
+                        legHeight, legThickness);
+                break;
 
-        // Draw Backrest
-        drawBox(gl, chairX, seatHeight + seatThickness, chairZ, chairWidth, backHeight, backThickness);
+            case "Armchair":
+                // Seat
+                setColor(gl, baseColor);
+                float radius = chairWidth * 0.05f;
+                drawRoundedCube(gl, chairX + chairWidth * 0.1f, seatHeight, chairZ + chairDepth * 0.1f,
+                        chairWidth * 0.8f, seatThickness * 1.5f, chairDepth * 0.8f, radius, 16);
+                // Backrest
+                drawRoundedCube(gl, chairX + chairWidth * 0.1f, seatHeight + seatThickness * 1.5f, chairZ,
+                        chairWidth * 0.8f, chairHeight * 0.8f, chairDepth * 0.15f, radius, 16);
+                // Armrests
+                setColor(gl, darkColor);
+                drawRoundedCube(gl, chairX, seatHeight, chairZ,
+                        chairWidth * 0.1f, chairHeight * 0.4f, chairDepth, radius, 16);
+                drawRoundedCube(gl, chairX + chairWidth * 0.9f, seatHeight, chairZ,
+                        chairWidth * 0.1f, chairHeight * 0.4f, chairDepth, radius, 16);
+                // Legs
+                setColor(gl, legColor);
+                float adjustedLegHeight = seatHeight + seatThickness * 1.5f;
+                drawBox(gl, chairX, 0, chairZ,
+                        legThickness, adjustedLegHeight, legThickness);
+                drawBox(gl, chairX + chairWidth - legThickness, 0, chairZ,
+                        legThickness, adjustedLegHeight, legThickness);
+                drawBox(gl, chairX, 0, chairZ + chairDepth - legThickness,
+                        legThickness, adjustedLegHeight, legThickness);
+                drawBox(gl, chairX + chairWidth - legThickness, 0, chairZ + chairDepth - legThickness,
+                        legThickness, adjustedLegHeight, legThickness);
+                break;
 
-        // Draw Legs
-        setColor(gl, legColor);
+            case "Dining":
+                // Seat
+                setColor(gl, baseColor);
+                drawRoundedCube(gl, chairX, seatHeight, chairZ,
+                        chairWidth, seatThickness * 1.5f, chairDepth, chairWidth * 0.03f, 16);
+                // Backrest
+                setColor(gl, baseColor);
+                float slatWidth = chairWidth * 0.25f;
+                float slatSpacing = chairWidth * 0.05f;
+                float slatHeight = chairHeight * 0.9f;
+                float slatDepth = chairDepth * 0.05f;
+                for (int i = 0; i < 3; i++) {
+                    float slatX = chairX + chairWidth * 0.1f + i * (slatWidth + slatSpacing);
+                    drawBox(gl, slatX, seatHeight + seatThickness * 1.5f, chairZ,
+                            slatWidth, slatHeight, slatDepth);
+                }
+                // Legs
+                setColor(gl, legColor);
+                float legRadius = legThickness * 0.35f;
+                float diningLegHeight = seatHeight;
+                drawCylinder(gl, chairX + legRadius, 0, chairZ + legRadius,
+                        legRadius, diningLegHeight, 16);
+                drawCylinder(gl, chairX + chairWidth - legRadius, 0, chairZ + legRadius,
+                        legRadius, diningLegHeight, 16);
+                drawCylinder(gl, chairX + legRadius, 0, chairZ + chairDepth - legRadius,
+                        legRadius, diningLegHeight, 16);
+                drawCylinder(gl, chairX + chairWidth - legRadius, 0, chairZ + chairDepth - legRadius,
+                        legRadius, diningLegHeight, 16);
+                break;
 
-        // Front Left
-        drawBox(gl, chairX, 0, chairZ, legThickness, legHeight, legThickness);
-
-        // Front Right
-        drawBox(gl, chairX + chairWidth - legThickness, 0, chairZ, legThickness, legHeight, legThickness);
-
-        // Back Left
-        drawBox(gl, chairX, 0, chairZ + chairDepth - legThickness, legThickness, legHeight, legThickness);
-
-        // Back Right
-        drawBox(gl, chairX + chairWidth - legThickness, 0, chairZ + chairDepth - legThickness, legThickness, legHeight,
-                legThickness);
-
+            default:
+                // Fallback to standard chair
+                setColor(gl, baseColor);
+                drawBox(gl, chairX, seatHeight, chairZ, chairWidth, seatThickness, chairDepth);
+                drawBox(gl, chairX, seatHeight + seatThickness, chairZ, chairWidth, chairHeight * 0.7f,
+                        chairWidth * 0.05f);
+                setColor(gl, legColor);
+                drawBox(gl, chairX, 0, chairZ, legThickness, legHeight, legThickness);
+                drawBox(gl, chairX + chairWidth - legThickness, 0, chairZ, legThickness, legHeight, legThickness);
+                drawBox(gl, chairX, 0, chairZ + chairDepth - legThickness, legThickness, legHeight, legThickness);
+                drawBox(gl, chairX + chairWidth - legThickness, 0, chairZ + chairDepth - legThickness, legThickness,
+                        legHeight, legThickness);
+        }
     }
 
     // 3D drawing for table

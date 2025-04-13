@@ -143,6 +143,7 @@ public class FurnitureDesignApp extends JFrame {
         menuBar.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
 
         JMenu fileMenu = createStyledMenu("File");
+
         addMenuItems(fileMenu,
                 createStyledMenuItem("New Design", "/images/add.png", e -> newDesign()),
                 createStyledMenuItem("Open Design", "/images/share.png", e -> openDesign()),
@@ -165,12 +166,20 @@ public class FurnitureDesignApp extends JFrame {
                 createStyledMenuItem("Reset View", "/images/reset.png", e -> visualizationPanel.resetView()));
 
         JMenu furnitureMenu = createStyledMenu("Furniture");
+        JMenu chairMenu = createStyledMenu("Add Chair");
+        addMenuItems(chairMenu,
+                createStyledMenuItem("Standard Chair", "../images/close.png", e -> addFurniture("Chair", "Standard")),
+                createStyledMenuItem("Armchair", "../images/close.png", e -> addFurniture("Chair", "Armchair")),
+                createStyledMenuItem("Dining Chair", "../images/close.png", e -> addFurniture("Chair", "Dining")));
+
         addMenuItems(furnitureMenu,
-                createStyledMenuItem("Add Chair", "/images/box.png", e -> addFurniture("Chair")),
-                createStyledMenuItem("Add Table", "/images/box.png", e -> addFurniture("Table")),
-                createStyledMenuItem("Add Sofa", "/images/box.png", e -> addFurniture("Sofa")),
-                createStyledMenuItem("Add Cabinet", "/images/box.png", e -> addFurniture("Cabinet")),
-                createStyledMenuItem("Add Bed", "/images/box.png", e -> addFurniture("Bed")));
+
+                chairMenu,
+                createStyledMenuItem("Add Table", "/images/box.png", e -> addFurniture("Table", "")),
+                createStyledMenuItem("Add Sofa", "/images/box.png", e -> addFurniture("Sofa", "")),
+                createStyledMenuItem("Add Cabinet", "/images/box.png", e -> addFurniture("Cabinet", "")),
+                createStyledMenuItem("Add Bed", "/images/box.png", e -> addFurniture("Bed", "")));
+
         menuBar.add(fileMenu);
         menuBar.add(editMenu);
         menuBar.add(viewMenu);
@@ -207,7 +216,6 @@ public class FurnitureDesignApp extends JFrame {
         } catch (Exception e) {
             System.out.println("Error loading icon: " + e.getMessage());
         }
-        
 
         item.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent evt) {
@@ -260,15 +268,34 @@ public class FurnitureDesignApp extends JFrame {
         toolBar.addSeparator();
 
         JButton chairButton = createToolbarButton("Chair", "/images/box.png");
-        chairButton.addActionListener(e -> addFurniture("Chair"));
+        JPopupMenu chairPopup = new JPopupMenu();
+        JMenuItem standardChair = new JMenuItem("Standard Chair");
+        JMenuItem armchair = new JMenuItem("Armchair");
+        JMenuItem diningChair = new JMenuItem("Dining Chair");
+
+        standardChair.addActionListener(e -> addFurniture("Chair", "Standard"));
+        armchair.addActionListener(e -> addFurniture("Chair", "Armchair"));
+        diningChair.addActionListener(e -> addFurniture("Chair", "Dining"));
+
+        chairPopup.add(standardChair);
+        chairPopup.add(armchair);
+        chairPopup.add(diningChair);
+
+        chairButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                chairPopup.show(chairButton, e.getX(), e.getY());
+            }
+        });
         toolBar.add(chairButton);
 
-        JButton tableButton = createToolbarButton("Table", "/images/box.png");
-        tableButton.addActionListener(e -> addFurniture("Table"));
+        JButton tableButton = createToolbarButton("Table", "../images/close.png");
+        tableButton.addActionListener(e -> addFurniture("Table", ""));
         toolBar.add(tableButton);
 
-        JButton sofaButton = createToolbarButton("Sofa", "/images/box.png");
-        sofaButton.addActionListener(e -> addFurniture("Sofa"));
+        JButton sofaButton = createToolbarButton("Sofa", "../images/close.png");
+        sofaButton.addActionListener(e -> addFurniture("Sofa", ""));
+
         toolBar.add(sofaButton);
 
         toolBar.addSeparator();
@@ -332,13 +359,13 @@ public class FurnitureDesignApp extends JFrame {
         button.setBackground(new Color(60, 60, 90));
         button.setForeground(Color.WHITE);
         button.setFont(new Font("Montserrat", Font.PLAIN, 12));
-    
+
         button.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 button.setBackground(new Color(80, 80, 110));
             }
-    
+
             @Override
             public void mouseExited(MouseEvent e) {
                 if (button instanceof JToggleButton && ((JToggleButton) button).isSelected()) {
@@ -349,7 +376,7 @@ public class FurnitureDesignApp extends JFrame {
                 }
             }
         });
-    
+
         // Update background when toggled
         if (button instanceof JToggleButton) {
             ((JToggleButton) button).addItemListener(e -> {
@@ -358,7 +385,6 @@ public class FurnitureDesignApp extends JFrame {
             });
         }
     }
-    
 
     private void setupPanels() {
         visualizationPanel = new VisualizationPanel(this);
@@ -472,34 +498,59 @@ public class FurnitureDesignApp extends JFrame {
         }
     }
 
-    private void addFurniture(String type) {
+    private void addFurniture(String type, String subtype) {
         if (currentDesign == null) {
             showErrorDialog("Please create a room design first before adding furniture.");
             return;
         }
 
         Room room = currentDesign.getRoom();
-        Color defaultColor = type.equals("Chair") ? new Color(180, 120, 70)
-                : type.equals("Table") ? new Color(150, 100, 50)
-                        : type.equals("Sofa") ? new Color(120, 80, 180)
-                                : type.equals("Bed") ? new Color(100, 150, 100)
-                                        : type.equals("Cabinet") ? new Color(139, 69, 19)
-                                                : Color.GRAY;
+        Color defaultColor;
+        double width, depth, height;
 
-        double width = type.equals("Chair") ? 0.5
-                : type.equals("Table") ? 1.0 : type.equals("Sofa") ? 1.2 : type.equals("Bed") ? 1.5 : 0.8;
-        double depth = type.equals("Chair") ? 0.5
-                : type.equals("Table") ? 0.8 : type.equals("Sofa") ? 0.6 : type.equals("Bed") ? 2.0 : 0.4;
-        double height = type.equals("Chair") ? 0.8
-                : type.equals("Table") ? 0.7 : type.equals("Sofa") ? 0.6 : type.equals("Bed") ? 0.5 : 1.0;
+        if (type.equals("Chair")) {
+            switch (subtype) {
+                case "Standard":
+                    defaultColor = new Color(180, 120, 70); // Wood brown
+                    width = 0.5;
+                    depth = 0.5;
+                    height = 0.8;
+                    break;
+                case "Armchair":
+                    defaultColor = new Color(100, 80, 120); // Soft purple
+                    width = 0.7;
+                    depth = 0.7;
+                    height = 0.9;
+                    break;
+                case "Dining":
+                    defaultColor = new Color(120, 80, 50); // Dark wood
+                    width = 0.45;
+                    depth = 0.45;
+                    height = 0.85;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown chair subtype: " + subtype);
+            }
+        } else {
+            defaultColor = type.equals("Table") ? new Color(150, 100, 50)
+                    : type.equals("Sofa") ? new Color(120, 80, 180)
+                            : type.equals("Bed") ? new Color(100, 150, 100)
+                                    : type.equals("Cabinet") ? new Color(139, 69, 19)
+                                            : Color.GRAY;
+            width = type.equals("Table") ? 1.0 : type.equals("Sofa") ? 1.2 : type.equals("Bed") ? 1.5 : 0.8;
+            depth = type.equals("Table") ? 0.8 : type.equals("Sofa") ? 0.6 : type.equals("Bed") ? 2.0 : 0.4;
+            height = type.equals("Table") ? 0.7 : type.equals("Sofa") ? 0.6 : type.equals("Bed") ? 0.5 : 1.0;
+            subtype = ""; // Non-chair types don't use subtypes
+        }
 
         double x = (room.getLength() - width) / 2;
         double z = (room.getWidth() - depth) / 2;
 
-        Furniture f = new Furniture(type, x, z, width, depth, height, defaultColor);
+        Furniture f = new Furniture(type, subtype, x, z, width, depth, height, defaultColor);
         currentDesign.addFurniture(f);
         setSelectedFurniture(f);
-        updateStatus("Added " + type + " to the design at (" + x + ", " + z + ")");
+        updateStatus("Added " + (type.equals("Chair") ? subtype + " " : "") + type + " to the design at (" + x + ", "
+                + z + ")");
         repaint();
     }
 
