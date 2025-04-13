@@ -11,6 +11,7 @@ public class PropertiesPanel extends JPanel {
     private JTextField xField, zField, widthField, depthField, heightField;
     private JButton colorButton;
     private JSlider shadeSlider;
+    private JComboBox<String> subtypeCombo;
     private Furniture furniture;
 
     // Colors and fonts
@@ -53,6 +54,20 @@ public class PropertiesPanel extends JPanel {
         fieldsPanel.setLayout(new BoxLayout(fieldsPanel, BoxLayout.Y_AXIS));
         fieldsPanel.setOpaque(false);
         fieldsPanel.setBorder(BorderFactory.createEmptyBorder(35, 5, 15, 5));
+
+        // Subtype combo box
+        subtypeCombo = new JComboBox<>(new String[] { "Standard", "Armchair", "Dining" });
+        styleComboBox(subtypeCombo);
+        subtypeCombo.addActionListener(e -> {
+            if (furniture != null && furniture.getType().equals("Chair")) {
+                String newSubtype = (String) subtypeCombo.getSelectedItem();
+                furniture.setSubtype(newSubtype);
+                updateFurnitureProperties(newSubtype);
+                repaintParent();
+            }
+        });
+        fieldsPanel.add(createPropertyField("Subtype", subtypeCombo));
+        fieldsPanel.add(Box.createRigidArea(new Dimension(0, VERTICAL_GAP)));
 
         // Input fields
         fieldsPanel.add(createPropertyField("X Position", xField = createStyledTextField()));
@@ -150,7 +165,6 @@ public class PropertiesPanel extends JPanel {
                 BorderFactory.createEmptyBorder(8, 12, 8, 12)));
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, field.getPreferredSize().height));
 
-        // Add hover effect
         field.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
@@ -224,7 +238,6 @@ public class PropertiesPanel extends JPanel {
         slider.setPaintLabels(true);
         slider.setMajorTickSpacing(25);
 
-        // Style the labels
         Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
         for (int i = 0; i <= 100; i += 25) {
             JLabel label = new JLabel(String.valueOf(i));
@@ -234,7 +247,6 @@ public class PropertiesPanel extends JPanel {
         }
         slider.setLabelTable(labelTable);
 
-        // Custom UI for slider
         slider.setUI(new javax.swing.plaf.basic.BasicSliderUI(slider) {
             @Override
             public void paintThumb(Graphics g) {
@@ -249,18 +261,15 @@ public class PropertiesPanel extends JPanel {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                // Background track
                 g2d.setColor(FIELD_BACKGROUND);
                 g2d.fillRoundRect(trackRect.x, trackRect.y + 5, trackRect.width, 5, 3, 3);
 
-                // Filled track
                 int thumbPos = thumbRect.x + thumbRect.width / 2;
                 g2d.setColor(HIGHLIGHT_COLOR);
                 g2d.fillRoundRect(trackRect.x, trackRect.y + 5, thumbPos - trackRect.x, 5, 3, 3);
             }
         });
 
-        // Add change listener
         slider.addChangeListener(e -> {
             if (furniture != null) {
                 furniture.setShadeFactor(slider.getValue() / 100f);
@@ -271,9 +280,44 @@ public class PropertiesPanel extends JPanel {
         return slider;
     }
 
-    private void setupFieldListeners() {
+    private void styleComboBox(JComboBox<String> combo) {
+        combo.setFont(FIELD_FONT);
+        combo.setForeground(TEXT_COLOR);
+        combo.setBackground(FIELD_BACKGROUND);
+        combo.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 2),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)));
+        combo.setMaximumSize(new Dimension(Integer.MAX_VALUE, combo.getPreferredSize().height));
 
-        // Enter key listener
+        combo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                setForeground(TEXT_COLOR);
+                setBackground(isSelected ? HIGHLIGHT_COLOR : FIELD_BACKGROUND);
+                return this;
+            }
+        });
+
+        combo.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                combo.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(HIGHLIGHT_COLOR, 2),
+                        BorderFactory.createEmptyBorder(8, 12, 8, 12)));
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                combo.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(BORDER_COLOR, 2),
+                        BorderFactory.createEmptyBorder(8, 12, 8, 12)));
+            }
+        });
+    }
+
+    private void setupFieldListeners() {
         ActionListener enterAction = e -> {
             JTextField source = (JTextField) e.getSource();
             updatePropertyFromField(source);
@@ -359,6 +403,44 @@ public class PropertiesPanel extends JPanel {
         }
     }
 
+    private void updateFurnitureProperties(String subtype) {
+        if (furniture == null || !furniture.getType().equals("Chair"))
+            return;
+
+        Color defaultColor;
+        double width, depth, height;
+
+        switch (subtype) {
+            case "Standard":
+                defaultColor = new Color(180, 120, 70);
+                width = 0.5;
+                depth = 0.5;
+                height = 0.8;
+                break;
+            case "Armchair":
+                defaultColor = new Color(100, 80, 120);
+                width = 0.7;
+                depth = 0.7;
+                height = 0.9;
+                break;
+            case "Dining":
+                defaultColor = new Color(120, 80, 50);
+                width = 0.45;
+                depth = 0.45;
+                height = 0.85;
+                break;
+            default:
+                return;
+        }
+
+        furniture.setWidth(width);
+        furniture.setDepth(depth);
+        furniture.setHeight(height);
+        furniture.setColor(defaultColor);
+        colorButton.setBackground(defaultColor);
+        populateFields(furniture);
+    }
+
     private void showError(String message) {
         JDialog errorDialog = new JDialog();
         errorDialog.setUndecorated(true);
@@ -400,9 +482,17 @@ public class PropertiesPanel extends JPanel {
         this.furniture = f;
         if (f == null) {
             clearFields();
+            subtypeCombo.setEnabled(false);
         } else {
             populateFields(f);
             colorButton.setBackground(f.getColor());
+            if (f.getType().equals("Chair")) {
+                subtypeCombo.setSelectedItem(f.getSubtype().isEmpty() ? "Standard" : f.getSubtype());
+                subtypeCombo.setEnabled(true);
+            } else {
+                subtypeCombo.setSelectedItem(null);
+                subtypeCombo.setEnabled(false);
+            }
         }
     }
 
@@ -414,6 +504,8 @@ public class PropertiesPanel extends JPanel {
         heightField.setText("");
         shadeSlider.setValue(100);
         colorButton.setBackground(FIELD_BACKGROUND);
+        subtypeCombo.setSelectedItem(null);
+        subtypeCombo.setEnabled(false);
     }
 
     private void populateFields(Furniture f) {
@@ -435,7 +527,6 @@ public class PropertiesPanel extends JPanel {
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Gradient background
         GradientPaint gradient = new GradientPaint(
                 0, 0,
                 new Color(23, 23, 38),
@@ -444,7 +535,6 @@ public class PropertiesPanel extends JPanel {
         g2d.setPaint(gradient);
         g2d.fillRect(0, 0, getWidth(), getHeight());
 
-        // Decorative elements
         g2d.setColor(new Color(255, 255, 255, 10));
         g2d.fillOval(-50, -50, 150, 150);
         g2d.fillOval(getWidth() - 100, getHeight() - 100, 200, 200);
