@@ -6,7 +6,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
+import java.awt.image.*;
 import java.io.*;
+import java.net.URL;
+
+import javax.imageio.ImageIO;
 
 public class FurnitureDesignApp extends JFrame {
     private VisualizationPanel visualizationPanel;
@@ -141,25 +145,25 @@ public class FurnitureDesignApp extends JFrame {
         JMenu fileMenu = createStyledMenu("File");
 
         addMenuItems(fileMenu,
-                createStyledMenuItem("New Design", "../images/close.png", e -> newDesign()),
-                createStyledMenuItem("Open Design", "../images/close.png", e -> openDesign()),
-                createStyledMenuItem("Save Design", "../images/close.png", e -> saveDesign()),
+                createStyledMenuItem("New Design", "/images/add.png", e -> newDesign()),
+                createStyledMenuItem("Open Design", "/images/share.png", e -> openDesign()),
+                createStyledMenuItem("Save Design", "/images/diskette.png", e -> saveDesign()),
                 new JSeparator(),
-                createStyledMenuItem("Exit", "../images/close.png", e -> dispose()));
+                createStyledMenuItem("Exit", "/images/exit.png", e -> dispose()));
 
         JMenu editMenu = createStyledMenu("Edit");
         addMenuItems(editMenu,
-                createStyledMenuItem("Undo", "../images/close.png", e -> System.out.println("Undo")),
-                createStyledMenuItem("Redo", "../images/close.png", e -> System.out.println("Redo")),
+                createStyledMenuItem("Undo", "/images/undo.png", e -> System.out.println("Undo")),
+                createStyledMenuItem("Redo", "/images/forward.png", e -> System.out.println("Redo")),
                 new JSeparator(),
-                createStyledMenuItem("Delete Selected", "../images/close.png", e -> deleteSelectedFurniture()));
+                createStyledMenuItem("Delete Selected", "/images/delete.png", e -> deleteSelectedFurniture()));
 
         JMenu viewMenu = createStyledMenu("View");
         addMenuItems(viewMenu,
-                createStyledMenuItem("Zoom In", "../images/close.png", e -> visualizationPanel.zoomIn()),
-                createStyledMenuItem("Zoom Out", "../images/close.png", e -> visualizationPanel.zoomOut()),
+                createStyledMenuItem("Zoom In", "/images/zoom-in.png", e -> visualizationPanel.zoomIn()),
+                createStyledMenuItem("Zoom Out", "/images/magnifying-glass.png", e -> visualizationPanel.zoomOut()),
                 new JSeparator(),
-                createStyledMenuItem("Reset View", "../images/close.png", e -> visualizationPanel.resetView()));
+                createStyledMenuItem("Reset View", "/images/reset.png", e -> visualizationPanel.resetView()));
 
         JMenu furnitureMenu = createStyledMenu("Furniture");
         JMenu chairMenu = createStyledMenu("Add Chair");
@@ -169,11 +173,12 @@ public class FurnitureDesignApp extends JFrame {
                 createStyledMenuItem("Dining Chair", "../images/close.png", e -> addFurniture("Chair", "Dining")));
 
         addMenuItems(furnitureMenu,
+
                 chairMenu,
-                createStyledMenuItem("Add Table", "../images/close.png", e -> addFurniture("Table", "")),
-                createStyledMenuItem("Add Sofa", "../images/close.png", e -> addFurniture("Sofa", "")),
-                createStyledMenuItem("Add Cabinet", "../images/close.png", e -> addFurniture("Cabinet", "")),
-                createStyledMenuItem("Add Bed", "../images/close.png", e -> addFurniture("Bed", "")));
+                createStyledMenuItem("Add Table", "/images/box.png", e -> addFurniture("Table", "")),
+                createStyledMenuItem("Add Sofa", "/images/box.png", e -> addFurniture("Sofa", "")),
+                createStyledMenuItem("Add Cabinet", "/images/box.png", e -> addFurniture("Cabinet", "")),
+                createStyledMenuItem("Add Bed", "/images/box.png", e -> addFurniture("Bed", "")));
 
         menuBar.add(fileMenu);
         menuBar.add(editMenu);
@@ -199,12 +204,17 @@ public class FurnitureDesignApp extends JFrame {
         item.addActionListener(action);
 
         try {
-            ImageIcon icon = new ImageIcon(getClass().getResource(iconPath));
-            if (icon.getImage() != null) {
-                item.setIcon(icon);
+            java.net.URL imageUrl = getClass().getResource(iconPath);
+            if (imageUrl != null) {
+                BufferedImage originalImage = ImageIO.read(imageUrl);
+                // menu item image size
+                Image resizedImage = originalImage.getScaledInstance(13, 13, Image.SCALE_SMOOTH);
+                item.setIcon(new ImageIcon(resizedImage));
+            } else {
+                System.out.println("Icon not found: " + iconPath);
             }
         } catch (Exception e) {
-            System.out.println("Icon not found: " + iconPath);
+            System.out.println("Error loading icon: " + e.getMessage());
         }
 
         item.addMouseListener(new MouseAdapter() {
@@ -220,27 +230,44 @@ public class FurnitureDesignApp extends JFrame {
         return item;
     }
 
+    private ImageIcon loadResizedIcon(String path, int width, int height) {
+        try {
+            URL imageUrl = getClass().getResource(path);
+            if (imageUrl != null) {
+                BufferedImage originalImage = ImageIO.read(imageUrl);
+                Image resizedImage = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                return new ImageIcon(resizedImage);
+            } else {
+                System.out.println("Icon not found: " + path);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Failed to load icon: " + path);
+        }
+        return null;
+    }
+
     private void setupToolbar() {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
         toolBar.setBackground(new Color(40, 40, 60));
         toolBar.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
-        JButton newButton = createToolbarButton("New", "../images/close.png");
+        JButton newButton = createToolbarButton("New", "/images/add.png");
         newButton.addActionListener(e -> newDesign());
         toolBar.add(newButton);
 
-        JButton openButton = createToolbarButton("Open", "../images/close.png");
+        JButton openButton = createToolbarButton("Open", "/images/share.png");
         openButton.addActionListener(e -> openDesign());
         toolBar.add(openButton);
 
-        JButton saveButton = createToolbarButton("Save", "../images/close.png");
+        JButton saveButton = createToolbarButton("Save", "/images/diskette.png");
         saveButton.addActionListener(e -> saveDesign());
         toolBar.add(saveButton);
 
         toolBar.addSeparator();
 
-        JButton chairButton = createToolbarButton("Chair", "../images/close.png");
+        JButton chairButton = createToolbarButton("Chair", "/images/box.png");
         JPopupMenu chairPopup = new JPopupMenu();
         JMenuItem standardChair = new JMenuItem("Standard Chair");
         JMenuItem armchair = new JMenuItem("Armchair");
@@ -268,26 +295,33 @@ public class FurnitureDesignApp extends JFrame {
 
         JButton sofaButton = createToolbarButton("Sofa", "../images/close.png");
         sofaButton.addActionListener(e -> addFurniture("Sofa", ""));
+
         toolBar.add(sofaButton);
 
         toolBar.addSeparator();
 
-        view2D3DToggle = new JToggleButton("3D View", new ImageIcon(getClass().getResource("../images/close.png")));
+        view2D3DToggle = new JToggleButton("3D View", loadResizedIcon("/images/3d.png", 20, 20));
         styleToolbarButton(view2D3DToggle);
+
         view2D3DToggle.addActionListener(e -> {
             boolean is3D = view2D3DToggle.isSelected();
             visualizationPanel.set3DView(is3D);
-            view2D3DToggle.setText(is3D ? "3D View" : "2D View");
-            view2D3DToggle.setIcon(new ImageIcon(getClass().getResource(
-                    is3D ? "images/3d.png" : "images/2d.png")));
+
+            String newText = is3D ? "2D View" : "3D View";
+            String newIconPath = is3D ? "/images/2d.png" : "/images/3d.png";
+
+            view2D3DToggle.setText(newText);
+            view2D3DToggle.setIcon(loadResizedIcon(newIconPath, 20, 20));
+
         });
+
         toolBar.add(view2D3DToggle);
 
-        JButton zoomInButton = createToolbarButton("Zoom In", "../images/close.png");
+        JButton zoomInButton = createToolbarButton("Zoom In", "/images/zoom-in.png");
         zoomInButton.addActionListener(e -> visualizationPanel.zoomIn());
         toolBar.add(zoomInButton);
 
-        JButton zoomOutButton = createToolbarButton("Zoom Out", "../images/close.png");
+        JButton zoomOutButton = createToolbarButton("Zoom Out", "/images/magnifying-glass.png");
         zoomOutButton.addActionListener(e -> visualizationPanel.zoomOut());
         toolBar.add(zoomOutButton);
 
@@ -296,12 +330,22 @@ public class FurnitureDesignApp extends JFrame {
 
     private JButton createToolbarButton(String tooltip, String iconPath) {
         JButton button = new JButton();
+
         try {
-            ImageIcon icon = new ImageIcon(getClass().getResource(iconPath));
-            button.setIcon(icon);
+            java.net.URL imageUrl = getClass().getResource(iconPath);
+            if (imageUrl != null) {
+                BufferedImage originalImage = ImageIO.read(imageUrl);
+                Image resizedImage = originalImage.getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+                ImageIcon resizedIcon = new ImageIcon(resizedImage);
+                button.setIcon(resizedIcon);
+            } else {
+                System.out.println("Icon not found: " + iconPath);
+            }
         } catch (Exception e) {
-            System.out.println("Icon not found: " + iconPath);
+            System.out.println("Error loading icon: " + iconPath);
+            e.printStackTrace();
         }
+
         button.setToolTipText(tooltip);
         styleToolbarButton(button);
         return button;
@@ -310,6 +354,8 @@ public class FurnitureDesignApp extends JFrame {
     private void styleToolbarButton(AbstractButton button) {
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        button.setOpaque(true);
+        button.setContentAreaFilled(false); // Prevent L&F from overriding background
         button.setBackground(new Color(60, 60, 90));
         button.setForeground(Color.WHITE);
         button.setFont(new Font("Montserrat", Font.PLAIN, 12));
@@ -322,9 +368,22 @@ public class FurnitureDesignApp extends JFrame {
 
             @Override
             public void mouseExited(MouseEvent e) {
-                button.setBackground(new Color(60, 60, 90));
+                if (button instanceof JToggleButton && ((JToggleButton) button).isSelected()) {
+                    // Darker color when selected and mouse exits
+                    button.setBackground(new Color(40, 40, 70));
+                } else {
+                    button.setBackground(new Color(60, 60, 90));
+                }
             }
         });
+
+        // Update background when toggled
+        if (button instanceof JToggleButton) {
+            ((JToggleButton) button).addItemListener(e -> {
+                boolean selected = ((JToggleButton) button).isSelected();
+                button.setBackground(selected ? new Color(40, 40, 70) : new Color(60, 60, 90));
+            });
+        }
     }
 
     private void setupPanels() {
