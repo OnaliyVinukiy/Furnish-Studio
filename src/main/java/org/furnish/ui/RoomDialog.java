@@ -76,6 +76,7 @@ class RoomDialog extends JDialog {
         pack(); // Adjusts dialog size to fit components
         setLocationRelativeTo(parent);
     }
+
     private boolean validateInputs() {
         try {
             double length = Double.parseDouble(lengthField.getText());
@@ -105,3 +106,6 @@ class RoomDialog extends JDialog {
         return new Room(length, width, height, floorColor, wallColor);
     }
 }
+
+
+
