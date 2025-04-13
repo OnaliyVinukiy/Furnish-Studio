@@ -317,11 +317,11 @@ public class FurnitureDesignApp extends JFrame {
 
         toolBar.add(view2D3DToggle);
 
-        JButton zoomInButton = createToolbarButton("Zoom In", "/images/zoom-in.png");
+        JButton zoomInButton = createToolbarButton("Zoom In", "/images/magnifying-glass.png");
         zoomInButton.addActionListener(e -> visualizationPanel.zoomIn());
         toolBar.add(zoomInButton);
 
-        JButton zoomOutButton = createToolbarButton("Zoom Out", "/images/magnifying-glass.png");
+        JButton zoomOutButton = createToolbarButton("Zoom Out", "/images/zoom-in.png ");
         zoomOutButton.addActionListener(e -> visualizationPanel.zoomOut());
         toolBar.add(zoomOutButton);
 
