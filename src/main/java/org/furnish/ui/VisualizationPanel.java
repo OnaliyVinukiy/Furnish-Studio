@@ -4,9 +4,14 @@ import org.furnish.core.*;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLJPanel;
 import com.jogamp.opengl.util.FPSAnimator;
+import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureIO;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class VisualizationPanel extends GLJPanel implements GLEventListener {
     private Design design;
@@ -27,6 +32,8 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
     private float decorZ = 0.5f;   // Normalized position (0-1)
     private boolean isDraggingDecor = false;
     private Point lastMousePos;
+
+    private Texture wallDecorTexture;
 
     // refactor --
 
@@ -466,50 +473,174 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         // Reset line width
         gl.glLineWidth(1.0f);
         
-        // Add decorative element to left wall (centered, inside the room)
+        // Add image decoration to left wall (centered, inside the room)
         float decorWidth = width * 0.3f;  // 30% of wall width
         float decorHeight = height * 0.25f; // 25% of wall height
         float decorYPos = height * 0.5f - decorHeight/2; // Vertical center
         float decorZPos = width * 0.5f - decorWidth/2;   // Horizontal center
         
-        // Decorative frame (slightly protruding into the room)
-        setColor(gl, new Color(150, 100, 50)); // Wooden frame color
+        // Load texture if not already loaded
+        if (wallDecorTexture == null) {
+            wallDecorTexture = loadTexture(gl);
+            if (wallDecorTexture == null) {
+                // Fallback: draw a colored rectangle if texture fails
+                setColor(gl, Color.RED);
+                gl.glBegin(GL2.GL_QUADS);
+                gl.glVertex3f(0.01f, decorYPos, decorZPos);
+                gl.glVertex3f(0.01f, decorYPos, decorZPos + decorWidth);
+                gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos + decorWidth);
+                gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos);
+                gl.glEnd();
+                return;
+            }
+        }
+        
+        // Draw the image decoration
+        if (wallDecorTexture != null) {
+            drawWallImage(gl, decorYPos, decorZPos, decorWidth, decorHeight);
+        }
+        
+        addWallLamp(gl, room, decorYPos + decorHeight, decorZPos + decorWidth/2);
+    }
+
+    private Texture loadTexture(GL2 gl) {
+        try {
+            // Load from resources
+            InputStream stream = getClass().getResourceAsStream("/images/decor.png");
+            if (stream == null) {
+                System.err.println("Could not find texture in resources");
+                return null;
+            }
+            
+            Texture texture = TextureIO.newTexture(stream, true, "png");
+            texture.setTexParameteri(gl, GL2.GL_TEXTURE_MIN_FILTER, GL2.GL_LINEAR);
+            texture.setTexParameteri(gl, GL2.GL_TEXTURE_MAG_FILTER, GL2.GL_LINEAR);
+            return texture;
+        } catch (IOException | GLException e) {
+            System.err.println("Error loading texture: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void drawWallImage(GL2 gl, float yPos, float zPos, float width, float height) {
+        float depth = 0.01f;
+        
+        // Enable texture and set parameters
+        gl.glEnable(GL2.GL_TEXTURE_2D);
+        wallDecorTexture.enable(gl);
+        wallDecorTexture.bind(gl);
+        
+        // Set texture environment
+        gl.glTexEnvi(GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, GL2.GL_REPLACE);
+        
+        // Enable blending for transparency if needed
+        gl.glEnable(GL2.GL_BLEND);
+        gl.glBlendFunc(GL2.GL_SRC_ALPHA, GL2.GL_ONE_MINUS_SRC_ALPHA);
+        
         gl.glBegin(GL2.GL_QUADS);
-        gl.glNormal3f(1, 0, 0); // Flipped normal since it's inside
+        gl.glNormal3f(1, 0, 0);
         
-        // Frame top (now facing into the room)
-        gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos);
-        gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos + decorWidth);
-        gl.glVertex3f(0.01f, decorYPos + decorHeight - 0.1f, decorZPos + decorWidth);
-        gl.glVertex3f(0.01f, decorYPos + decorHeight - 0.1f, decorZPos);
+        gl.glTexCoord2f(0, 1);  // Bottom-left
+        gl.glVertex3f(depth, yPos, zPos);
         
-        // Frame bottom
-        gl.glVertex3f(0.01f, decorYPos, decorZPos);
-        gl.glVertex3f(0.01f, decorYPos, decorZPos + decorWidth);
-        gl.glVertex3f(0.01f, decorYPos + 0.1f, decorZPos + decorWidth);
-        gl.glVertex3f(0.01f, decorYPos + 0.1f, decorZPos);
+        gl.glTexCoord2f(1, 1);  // Bottom-right
+        gl.glVertex3f(depth, yPos, zPos + width);
         
-        // Frame left
-        gl.glVertex3f(0.01f, decorYPos, decorZPos);
-        gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos);
-        gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos + 0.1f);
-        gl.glVertex3f(0.01f, decorYPos, decorZPos + 0.1f);
+        gl.glTexCoord2f(1, 0);  // Top-right
+        gl.glVertex3f(depth, yPos + height, zPos + width);
         
-        // Frame right
-        gl.glVertex3f(0.01f, decorYPos, decorZPos + decorWidth - 0.1f);
-        gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos + decorWidth - 0.1f);
-        gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos + decorWidth);
-        gl.glVertex3f(0.01f, decorYPos, decorZPos + decorWidth);
+        gl.glTexCoord2f(0, 0);  // Top-left
+        gl.glVertex3f(depth, yPos + height, zPos);
+        
         gl.glEnd();
         
-        // Decorative panel inside frame (facing into the room)
-        setColor(gl, new Color(200, 180, 150)); // Light panel color
+        // Clean up state
+        wallDecorTexture.disable(gl);
+        gl.glDisable(GL2.GL_TEXTURE_2D);
+        gl.glDisable(GL2.GL_BLEND);
+    }
+    
+    private void addWallLamp(GL2 gl, Room room, float baseY, float centerZ) {
+
+        float lampHeight = (float)(room.getHeight() * 0.15);
+        float lampWidth = (float)(room.getWidth() * 0.08);
+        float lampDepth = 0.1f;
+        
+        // Lamp base (wall mount)
+        setColor(gl, new Color(200, 200, 200));
         gl.glBegin(GL2.GL_QUADS);
-        gl.glNormal3f(1, 0, 0); // Flipped normal
-        gl.glVertex3f(0.02f, decorYPos + 0.1f, decorZPos + 0.1f);
-        gl.glVertex3f(0.02f, decorYPos + decorHeight - 0.1f, decorZPos + 0.1f);
-        gl.glVertex3f(0.02f, decorYPos + decorHeight - 0.1f, decorZPos + decorWidth - 0.1f);
-        gl.glVertex3f(0.02f, decorYPos + 0.1f, decorZPos + decorWidth - 0.1f);
+        gl.glNormal3f(1, 0, 0);
+        gl.glVertex3f(0.02f, baseY, centerZ - lampWidth/2);
+        gl.glVertex3f(0.02f, baseY, centerZ + lampWidth/2); 
+        gl.glVertex3f(0.02f, baseY - lampHeight*0.3f, centerZ + lampWidth/2); // Using lampHeight
+        gl.glVertex3f(0.02f, baseY - lampHeight*0.3f, centerZ - lampWidth/2);
+        gl.glEnd();
+        
+        // Lamp arm (extending from wall)
+        setColor(gl, new Color(180, 180, 180));
+        gl.glBegin(GL2.GL_QUADS);
+        // Top
+        gl.glNormal3f(0, 1, 0);
+        gl.glVertex3f(0.02f, baseY - lampHeight*0.25f, centerZ - 0.02f);
+        gl.glVertex3f(lampDepth, baseY - lampHeight*0.25f, centerZ - 0.02f);
+        gl.glVertex3f(lampDepth, baseY - lampHeight*0.25f, centerZ + 0.02f);
+        gl.glVertex3f(0.02f, baseY - lampHeight*0.25f, centerZ + 0.02f);
+        // Bottom
+        gl.glNormal3f(0, -1, 0);
+        gl.glVertex3f(0.02f, baseY - 0.07f, centerZ - 0.02f);
+        gl.glVertex3f(lampDepth, baseY - 0.07f, centerZ - 0.02f);
+        gl.glVertex3f(lampDepth, baseY - 0.07f, centerZ + 0.02f);
+        gl.glVertex3f(0.02f, baseY - 0.07f, centerZ + 0.02f);
+        // Front
+        gl.glNormal3f(0, 0, 1);
+        gl.glVertex3f(0.02f, baseY - 0.07f, centerZ + 0.02f);
+        gl.glVertex3f(lampDepth, baseY - 0.07f, centerZ + 0.02f);
+        gl.glVertex3f(lampDepth, baseY - 0.03f, centerZ + 0.02f);
+        gl.glVertex3f(0.02f, baseY - 0.03f, centerZ + 0.02f);
+        // Back
+        gl.glNormal3f(0, 0, -1);
+        gl.glVertex3f(0.02f, baseY - 0.07f, centerZ - 0.02f);
+        gl.glVertex3f(lampDepth, baseY - 0.07f, centerZ - 0.02f);
+        gl.glVertex3f(lampDepth, baseY - 0.03f, centerZ - 0.02f);
+        gl.glVertex3f(0.02f, baseY - 0.03f, centerZ - 0.02f);
+        gl.glEnd();
+        
+        // Lamp shade (bulb housing)
+        setColor(gl, new Color(240, 240, 200)); // Off-white shade
+        gl.glBegin(GL2.GL_QUADS);
+        // Front
+        gl.glNormal3f(0, 0, 1);
+        gl.glVertex3f(lampDepth, baseY - lampHeight*0.7f, centerZ - 0.05f);
+        gl.glVertex3f(lampDepth, baseY - lampHeight*0.7f, centerZ + 0.05f);
+        gl.glVertex3f(lampDepth, baseY - lampHeight*0.2f, centerZ + 0.03f); 
+        gl.glVertex3f(lampDepth, baseY - lampHeight*0.2f, centerZ - 0.03f);
+        // Back
+        gl.glNormal3f(0, 0, -1);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.1f, centerZ - 0.05f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.1f, centerZ + 0.05f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.03f, centerZ + 0.03f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.03f, centerZ - 0.03f);
+        // Sides
+        gl.glNormal3f(1, 0, 0);
+        gl.glVertex3f(lampDepth, baseY - 0.1f, centerZ - 0.05f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.1f, centerZ - 0.05f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.03f, centerZ - 0.03f);
+        gl.glVertex3f(lampDepth, baseY - 0.03f, centerZ - 0.03f);
+        
+        gl.glVertex3f(lampDepth, baseY - 0.1f, centerZ + 0.05f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.1f, centerZ + 0.05f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.03f, centerZ + 0.03f);
+        gl.glVertex3f(lampDepth, baseY - 0.03f, centerZ + 0.03f);
+        gl.glEnd();
+        
+        // Light bulb (yellow glow)
+        setColor(gl, new Color(255, 255, 150));
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glNormal3f(-1, 0, 0);
+        gl.glVertex3f(lampDepth - 0.01f, baseY - lampHeight*0.5f, centerZ - 0.03f);
+        gl.glVertex3f(lampDepth - 0.01f, baseY - lampHeight*0.5f, centerZ + 0.03f);
+        gl.glVertex3f(lampDepth - 0.01f, baseY - lampHeight*0.4f, centerZ + 0.03f);
+        gl.glVertex3f(lampDepth - 0.01f, baseY - lampHeight*0.4f, centerZ - 0.03f);
         gl.glEnd();
     }
 
