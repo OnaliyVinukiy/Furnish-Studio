@@ -205,8 +205,8 @@ public class FurnitureDesignApp extends JFrame {
 
         JMenu editMenu = createStyledMenu("Edit");
         addMenuItems(editMenu,
-                createStyledMenuItem("Undo", "/images/undo.png", e -> System.out.println("Undo")),
-                createStyledMenuItem("Redo", "/images/forward.png", e -> System.out.println("Redo")),
+                createStyledMenuItem("Undo", "/images/undo.png", e -> performUndo()),
+                createStyledMenuItem("Redo", "/images/forward.png", e -> performRedo()),
                 new JSeparator(),
                 createStyledMenuItem("Delete Selected", "/images/delete.png", e -> deleteSelectedFurniture()));
 
