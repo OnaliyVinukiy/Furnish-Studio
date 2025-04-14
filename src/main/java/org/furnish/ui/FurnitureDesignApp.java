@@ -3,6 +3,8 @@ package org.furnish.ui;
 import org.furnish.core.*;
 import org.furnish.utils.CloseButtonUtil;
 import javax.swing.*;
+import javax.swing.border.Border;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
@@ -160,10 +162,15 @@ public class FurnitureDesignApp extends JFrame {
 
         JMenu viewMenu = createStyledMenu("View");
         addMenuItems(viewMenu,
-                createStyledMenuItem("Zoom In", "/images/zoom-in.png", e -> visualizationPanel.zoomIn()),
-                createStyledMenuItem("Zoom Out", "/images/magnifying-glass.png", e -> visualizationPanel.zoomOut()),
-                new JSeparator(),
-                createStyledMenuItem("Reset View", "/images/reset.png", e -> visualizationPanel.resetView()));
+        createStyledMenuItem("Zoom In", "/images/zoom-in.png", e -> visualizationPanel.zoomIn()),
+        createStyledMenuItem("Zoom Out", "/images/magnifying-glass.png", e -> visualizationPanel.zoomOut()),
+        new JSeparator(),
+        createStyledMenuItem("Reset View", "/images/reset.png", e -> {
+            visualizationPanel.resetView();
+            visualizationPanel.zoomIn();
+            visualizationPanel.zoomIn();
+            visualizationPanel.zoomIn();
+        }));
 
         JMenu furnitureMenu = createStyledMenu("Furniture");
         JMenu chairMenu = createStyledMenu("Add Chair");
@@ -180,10 +187,77 @@ public class FurnitureDesignApp extends JFrame {
                 createStyledMenuItem("Add Cabinet", "/images/box.png", e -> addFurniture("Cabinet", "")),
                 createStyledMenuItem("Add Bed", "/images/box.png", e -> addFurniture("Bed", "")));
 
+
+        // Create the close button with perfect circular shape
+        JButton closeButton = new JButton("×") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                // First paint the background circle
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillOval(0, 0, getWidth(), getHeight());
+                g2.dispose();
+                
+                // Then paint the text centered
+                super.paintComponent(g);
+            }
+
+            @Override
+            public Dimension getPreferredSize() {
+                return new Dimension(32, 32); // MUST be square for perfect circle
+            }
+
+            @Override
+            public Dimension getMinimumSize() {
+                return getPreferredSize();
+            }
+
+            @Override
+            public Dimension getMaximumSize() {
+                return getPreferredSize();
+            }
+        };
+
+        // Basic styling
+        closeButton.setFocusPainted(false);
+        closeButton.setContentAreaFilled(false);
+        closeButton.setOpaque(false);
+        closeButton.setBackground(new Color(255, 100, 100));
+        closeButton.setForeground(Color.WHITE);
+        closeButton.setFont(new Font("Arial", Font.BOLD, 16));
+        closeButton.setBorder(BorderFactory.createEmptyBorder());
+
+        // Perfect text centering
+        closeButton.setHorizontalTextPosition(JButton.CENTER);
+        closeButton.setVerticalTextPosition(JButton.CENTER);
+
+        // Hover effects
+        closeButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                closeButton.setBackground(new Color(255, 70, 70));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                closeButton.setBackground(new Color(255, 100, 100));
+            }
+        });
+
+        closeButton.addActionListener(e -> dispose());
+        closeButton.setToolTipText("Close the application");
+        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
         menuBar.add(fileMenu);
         menuBar.add(editMenu);
         menuBar.add(viewMenu);
         menuBar.add(furnitureMenu);
+
+        // Add glue to push the button to the right
+        menuBar.add(Box.createHorizontalGlue());
+        menuBar.add(closeButton);
+
         setJMenuBar(menuBar);
     }
 
@@ -337,6 +411,14 @@ public class FurnitureDesignApp extends JFrame {
         JButton zoomOutButton = createToolbarButton("Zoom Out", "/images/zoom-in.png ");
         zoomOutButton.addActionListener(e -> visualizationPanel.zoomOut());
         toolBar.add(zoomOutButton);
+
+        JButton undoButton = createToolbarButton("undo", "/images/undo.png");
+        undoButton.addActionListener(e -> visualizationPanel.zoomIn());
+        toolBar.add(undoButton);
+
+        JButton redoButton = createToolbarButton("redo", "/images/forward.png ");
+        redoButton.addActionListener(e -> visualizationPanel.zoomOut());
+        toolBar.add(redoButton);
 
         getContentPane().add(toolBar, BorderLayout.NORTH);
     }
