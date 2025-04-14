@@ -23,7 +23,7 @@ class RoomDialog extends JDialog {
         lengthField = new JTextField("5.0", 15);  // Increased column size
         gridPanel.add(lengthField);
     
-        gridPanel.add(new JLabel("Width (m) Left Wall:"));
+        gridPanel.add(new JLabel("Length (m) Left Wall:"));
         widthField = new JTextField("5.0", 15);   // Increased column size
         gridPanel.add(widthField);
     
