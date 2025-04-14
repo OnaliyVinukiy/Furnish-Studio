@@ -49,10 +49,12 @@ import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.UIManager;
+import javax.swing.undo.CannotRedoException;
 
 import org.furnish.core.Design;
 import org.furnish.core.Furniture;
 import org.furnish.core.Room;
+import org.furnish.models.FurnitureUndoManager;
 import org.furnish.utils.CloseButtonUtil;
 
 public class FurnitureDesignApp extends JFrame {
@@ -66,6 +68,13 @@ public class FurnitureDesignApp extends JFrame {
     private static final double ZOOM_STEP = 0.1;
     private static final double MIN_ZOOM = 0.5;
     private static final double MAX_ZOOM = 3.0;
+
+    // refactor
+    private final FurnitureUndoManager undoManager = new FurnitureUndoManager();
+    private JButton undoButton;
+    private JButton redoButton;
+
+    //-- refactor
 
     public FurnitureDesignApp() {
         initializeModernUI();
@@ -453,16 +462,66 @@ public class FurnitureDesignApp extends JFrame {
         zoomOutButton.addActionListener(e -> visualizationPanel.zoomOut());
         toolBar.add(zoomOutButton);
 
-        JButton undoButton = createToolbarButton("undo", "/images/undo.png");
-        undoButton.addActionListener(e -> visualizationPanel.zoomIn());
+        // Undo Button
+        undoButton = createToolbarButton("Undo", "/images/undo.png");
+        undoButton.addActionListener(e -> performUndo());
+        undoButton.setEnabled(false);
         toolBar.add(undoButton);
 
-        JButton redoButton = createToolbarButton("redo", "/images/forward.png ");
-        redoButton.addActionListener(e -> visualizationPanel.zoomOut());
+        // Redo Button
+        redoButton = createToolbarButton("Redo", "/images/forward.png");
+        redoButton.addActionListener(e -> {
+            try {
+                if (undoManager.canRedo()) {
+                    undoManager.redo();  // This must be called on the manager instance
+                    repaint();
+                }
+            } catch (CannotRedoException ex) {
+                ex.printStackTrace();
+            }
+        });
+        redoButton.setEnabled(false);
         toolBar.add(redoButton);
+
+        // Setup listener for undo/redo state changes
+        undoManager.addUndoableEditListener(e -> updateUndoRedoButtons());
 
         getContentPane().add(toolBar, BorderLayout.NORTH);
     }
+
+    // refactor --
+
+    private void performUndo() {
+        if (undoManager.canUndo()) {
+            undoManager.undo();
+            repaint();
+        }
+    }
+
+    private void performRedo() {
+        try {
+            if (undoManager.canRedo()) {
+                undoManager.redo();
+                repaint();
+                // Update selection if needed
+                if (selectedFurniture != null && 
+                    !currentDesign.getFurnitureList().contains(selectedFurniture)) {
+                    setSelectedFurniture(null);
+                }
+            }
+        } catch (CannotRedoException ex) {
+            System.err.println("Cannot redo: " + ex.getMessage());
+        }
+    }
+
+    private void updateUndoRedoButtons() {
+        SwingUtilities.invokeLater(() -> {
+            undoButton.setEnabled(undoManager.canUndo());
+            redoButton.setEnabled(undoManager.canRedo());
+        });
+    }
+
+    // -- refactor
 
     private JButton createToolbarButton(String tooltip, String iconPath) {
         JButton button = new JButton();
@@ -689,9 +748,13 @@ public class FurnitureDesignApp extends JFrame {
 
         Furniture f = new Furniture(type, subtype, x, z, width, depth, height, defaultColor);
         currentDesign.addFurniture(f);
+        undoManager.addFurnitureEdit(currentDesign, f, true);
         setSelectedFurniture(f);
-        updateStatus("Added " + (type.equals("Chair") ? subtype + " " : "") + type + " to the design at (" + x + ", "
-                + z + ")");
+        // updateStatus("Added " + (type.equals("Chair") ? subtype + " " : "") + type + " to the design at (" + x + ", "
+        //         + z + ")");
+
+        updateStatus("Added " + type + (subtype.isEmpty() ? "" : " " + subtype));
+
         repaint();
     }
 
@@ -704,6 +767,15 @@ public class FurnitureDesignApp extends JFrame {
         if (selectedFurniture == null) {
             showErrorDialog("No furniture selected to delete.");
             return;
+        }
+
+        if (selectedFurniture != null && currentDesign != null) {
+            Furniture toDelete = selectedFurniture;
+            currentDesign.removeFurniture(toDelete);
+            undoManager.addFurnitureEdit(currentDesign, toDelete, false); // Record removal
+            setSelectedFurniture(null);
+            updateStatus("Removed " + toDelete.getType());
+            repaint();
         }
 
         String type = selectedFurniture.getType();
@@ -767,4 +839,5 @@ public class FurnitureDesignApp extends JFrame {
             timer.start();
         });
     }
+    
 }
