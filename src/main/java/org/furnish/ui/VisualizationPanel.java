@@ -2,16 +2,20 @@ package org.furnish.ui;
 
 import org.furnish.core.*;
 import com.jogamp.opengl.*;
+import com.jogamp.opengl.glu.GLU;
 import com.jogamp.opengl.awt.GLJPanel;
 import com.jogamp.opengl.util.FPSAnimator;
-
+import java.nio.IntBuffer;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class VisualizationPanel extends GLJPanel implements GLEventListener {
     private Design design;
     private FurnitureDesignApp parent;
     private Furniture draggedFurniture;
+    private GLU glu = new GLU();
     private Point dragOffset;
     private float rotationX = 0;
     private float rotationY = 0;
@@ -19,6 +23,10 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
     private float zoomFactor = 1.0f;
     private boolean is3DView = false;
     private FPSAnimator animator;
+    private Furniture selectedFurniture;
+    private String selectedPart;
+    private Map<Integer, Furniture> pickMap;
+    private Map<Integer, String> partPickMap;
 
     public VisualizationPanel(FurnitureDesignApp parent) {
         super(new GLCapabilities(GLProfile.get(GLProfile.GL2)));
@@ -186,7 +194,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
     // 2D drawing for table
     private void drawTable2D(GL2 gl, float x, float z, float w, float d) {
-
         gl.glBegin(GL2.GL_QUADS);
         // Tabletop
         gl.glVertex3f(x, z, 0f);
@@ -223,7 +230,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
     // 2D drawing for sofa
     private void drawSofa2D(GL2 gl, float x, float z, float w, float d) {
-
         gl.glBegin(GL2.GL_QUADS);
         // Base
         gl.glVertex3f(x, z, 0f);
@@ -266,7 +272,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
     // 2D drawing for cabinet
     private void drawCabinet2D(GL2 gl, float x, float z, float w, float d) {
-
         gl.glBegin(GL2.GL_QUADS);
         // Body
         gl.glVertex3f(x, z, 0f);
@@ -315,8 +320,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
             } else if (f.getType().equals("Bed")) {
                 drawBed3D(gl, f);
             } else {
-
-                setColor(gl, f.getColor());
+                setColor(gl, f.getPartColor("body"));
                 drawBox(gl,
                         (float) f.getX(),
                         0f,
@@ -330,10 +334,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
     // 3D drawing for chair
     private void drawChair3D(GL2 gl, Furniture f) {
-        Color baseColor = f.getColor();
-        Color darkColor = baseColor.darker();
-        Color legColor = new Color(70, 50, 30);
-
         float chairX = (float) f.getX();
         float chairZ = (float) f.getZ();
         float chairWidth = (float) f.getWidth();
@@ -346,17 +346,28 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         float legThickness = chairWidth * 0.08f;
         float legHeight = seatHeight;
 
+        if (f.isSelected()) {
+            gl.glPushAttrib(GL2.GL_CURRENT_BIT);
+            gl.glColor3f(1.0f, 1.0f, 0.0f); 
+            gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+            drawBox(gl, chairX - 0.05f, 0, chairZ - 0.05f,
+                    chairWidth + 0.1f, chairHeight + 0.1f, chairDepth + 0.1f);
+            gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+            gl.glPopAttrib();
+        }
+
         switch (subtype) {
             case "Standard":
                 // Seat
-                setColor(gl, baseColor);
+                setColor(gl, f.getPartColor("seat"));
                 drawBox(gl, chairX, seatHeight, chairZ, chairWidth, seatThickness, chairDepth);
                 // Backrest
+                setColor(gl, f.getPartColor("backrest"));
                 float backHeight = chairHeight * 0.7f;
                 float backThickness = chairWidth * 0.05f;
                 drawBox(gl, chairX, seatHeight + seatThickness, chairZ, chairWidth, backHeight, backThickness);
                 // Legs
-                setColor(gl, legColor);
+                setColor(gl, f.getPartColor("legs"));
                 drawBox(gl, chairX, 0, chairZ, legThickness, legHeight, legThickness);
                 drawBox(gl, chairX + chairWidth - legThickness, 0, chairZ, legThickness, legHeight, legThickness);
                 drawBox(gl, chairX, 0, chairZ + chairDepth - legThickness, legThickness, legHeight, legThickness);
@@ -366,21 +377,22 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
             case "Armchair":
                 // Seat
-                setColor(gl, baseColor);
+                setColor(gl, f.getPartColor("seat"));
                 float radius = chairWidth * 0.05f;
                 drawRoundedCube(gl, chairX + chairWidth * 0.1f, seatHeight, chairZ + chairDepth * 0.1f,
                         chairWidth * 0.8f, seatThickness * 1.5f, chairDepth * 0.8f, radius, 16);
                 // Backrest
+                setColor(gl, f.getPartColor("backrest"));
                 drawRoundedCube(gl, chairX + chairWidth * 0.1f, seatHeight + seatThickness * 1.5f, chairZ,
                         chairWidth * 0.8f, chairHeight * 0.8f, chairDepth * 0.15f, radius, 16);
                 // Armrests
-                setColor(gl, darkColor);
+                setColor(gl, f.getPartColor("arms"));
                 drawRoundedCube(gl, chairX, seatHeight, chairZ,
                         chairWidth * 0.1f, chairHeight * 0.4f, chairDepth, radius, 16);
                 drawRoundedCube(gl, chairX + chairWidth * 0.9f, seatHeight, chairZ,
                         chairWidth * 0.1f, chairHeight * 0.4f, chairDepth, radius, 16);
                 // Legs
-                setColor(gl, legColor);
+                setColor(gl, f.getPartColor("legs"));
                 float adjustedLegHeight = seatHeight + seatThickness * 1.5f;
                 drawBox(gl, chairX, 0, chairZ,
                         legThickness, adjustedLegHeight, legThickness);
@@ -394,11 +406,11 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
             case "Dining":
                 // Seat
-                setColor(gl, baseColor);
+                setColor(gl, f.getPartColor("seat"));
                 drawRoundedCube(gl, chairX, seatHeight, chairZ,
                         chairWidth, seatThickness * 1.5f, chairDepth, chairWidth * 0.03f, 16);
                 // Backrest
-                setColor(gl, baseColor);
+                setColor(gl, f.getPartColor("backrest"));
                 float slatWidth = chairWidth * 0.25f;
                 float slatSpacing = chairWidth * 0.05f;
                 float slatHeight = chairHeight * 0.9f;
@@ -409,7 +421,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                             slatWidth, slatHeight, slatDepth);
                 }
                 // Legs
-                setColor(gl, legColor);
+                setColor(gl, f.getPartColor("legs"));
                 float legRadius = legThickness * 0.35f;
                 float diningLegHeight = seatHeight;
                 drawCylinder(gl, chairX + legRadius, 0, chairZ + legRadius,
@@ -424,11 +436,12 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
             default:
                 // Fallback to standard chair
-                setColor(gl, baseColor);
+                setColor(gl, f.getPartColor("seat"));
                 drawBox(gl, chairX, seatHeight, chairZ, chairWidth, seatThickness, chairDepth);
+                setColor(gl, f.getPartColor("backrest"));
                 drawBox(gl, chairX, seatHeight + seatThickness, chairZ, chairWidth, chairHeight * 0.7f,
                         chairWidth * 0.05f);
-                setColor(gl, legColor);
+                setColor(gl, f.getPartColor("legs"));
                 drawBox(gl, chairX, 0, chairZ, legThickness, legHeight, legThickness);
                 drawBox(gl, chairX + chairWidth - legThickness, 0, chairZ, legThickness, legHeight, legThickness);
                 drawBox(gl, chairX, 0, chairZ + chairDepth - legThickness, legThickness, legHeight, legThickness);
@@ -439,9 +452,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
     // 3D drawing for table
     private void drawTable3D(GL2 gl, Furniture f) {
-        Color baseColor = f.getColor();
-        Color legColor = baseColor.darker();
-
         float tableX = (float) f.getX();
         float tableZ = (float) f.getZ();
         float tableWidth = (float) f.getWidth();
@@ -450,46 +460,39 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
         float topThickness = tableHeight * 0.05f;
         float legThickness = tableWidth * 0.08f;
-
         float legHeight = tableHeight - topThickness;
 
+        if (f.isSelected()) {
+            gl.glPushAttrib(GL2.GL_CURRENT_BIT);
+            gl.glColor3f(1.0f, 1.0f, 0.0f);
+            gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+            drawBox(gl, tableX - 0.05f, 0, tableZ - 0.05f,
+                    tableWidth + 0.1f, tableHeight + 0.1f, tableDepth + 0.1f);
+            gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+            gl.glPopAttrib();
+        }
+
         // Draw Table Top
-        setColor(gl, baseColor);
+        setColor(gl, f.getPartColor("top"));
         drawBox(gl, tableX, legHeight, tableZ, tableWidth, topThickness, tableDepth);
 
         // Draw Legs
-        setColor(gl, legColor);
-
-        // Front Left Leg
+        setColor(gl, f.getPartColor("legs"));
         drawBox(gl, tableX, 0, tableZ, legThickness, legHeight, legThickness);
-
-        // Front Right Leg
         drawBox(gl, tableX + tableWidth - legThickness, 0, tableZ, legThickness, legHeight, legThickness);
-
-        // Back Left Leg
         drawBox(gl, tableX, 0, tableZ + tableDepth - legThickness, legThickness, legHeight, legThickness);
-
-        // Back Right Leg
         drawBox(gl, tableX + tableWidth - legThickness, 0, tableZ + tableDepth - legThickness, legThickness, legHeight,
                 legThickness);
     }
 
     // 3D drawing for bed
     private void drawBed3D(GL2 gl, Furniture f) {
-        Color baseColor = f.getColor();
-        Color frameColor = baseColor.darker();
-        Color legColor = new Color(70, 50, 30);
-        Color mattressColor = new Color(240, 240, 250);
-        Color pillowColor = new Color(255, 255, 255);
-        Color sheetColor = new Color(220, 230, 255);
-
         float bedX = (float) f.getX();
         float bedZ = (float) f.getZ();
         float bedWidth = (float) f.getWidth();
         float bedDepth = (float) f.getDepth();
         float bedHeight = (float) f.getHeight();
 
-        // Dimensions
         float frameThickness = 0.15f;
         float mattressHeight = bedHeight * 0.25f;
         float headboardHeight = bedHeight * 0.7f;
@@ -499,21 +502,30 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         float pillowHeight = mattressHeight * 0.3f;
         int slices = 8;
 
+        if (f.isSelected()) {
+            gl.glPushAttrib(GL2.GL_CURRENT_BIT);
+            gl.glColor3f(1.0f, 1.0f, 0.0f);
+            gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+            drawBox(gl, bedX - 0.05f, 0, bedZ - 0.05f,
+                    bedWidth + 0.1f, bedHeight + 0.1f, bedDepth + 0.1f);
+            gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+            gl.glPopAttrib();
+        }
+
         // Draw Bed Frame
-        setColor(gl, frameColor);
+        setColor(gl, f.getPartColor("frame"));
         drawRoundedCube(gl, bedX, legHeight, bedZ,
                 bedWidth, frameThickness, bedDepth,
                 frameThickness * 0.5f, slices);
 
         // Draw Headboard
-        setColor(gl, frameColor);
+        setColor(gl, f.getPartColor("headboard"));
         drawRoundedCube(gl, bedX, legHeight, bedZ - frameThickness * 0.5f,
                 bedWidth, headboardHeight, frameThickness * 1.5f,
                 frameThickness * 0.7f, slices);
 
         // Draw Mattress
-        setColor(gl, mattressColor);
-
+        setColor(gl, f.getPartColor("mattress"));
         drawRoundedCube(gl, bedX + frameThickness * 0.5f,
                 legHeight + frameThickness,
                 bedZ + frameThickness * 0.5f,
@@ -523,7 +535,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 frameThickness * 0.8f, slices);
 
         // Draw Sheet
-        setColor(gl, sheetColor);
+        setColor(gl, f.getPartColor("sheet"));
         drawRoundedCube(gl, bedX + frameThickness * 0.5f,
                 legHeight + frameThickness + mattressHeight * 0.7f,
                 bedZ + frameThickness * 0.5f,
@@ -533,8 +545,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 frameThickness * 0.8f, slices);
 
         // Draw Pillows
-        setColor(gl, pillowColor);
-        // First pillow
+        setColor(gl, f.getPartColor("pillows"));
         drawRoundedCube(gl, bedX + (bedWidth - pillowWidth) / 2,
                 legHeight + frameThickness + mattressHeight,
                 bedZ + frameThickness * 2f,
@@ -542,8 +553,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 pillowHeight,
                 pillowDepth,
                 pillowHeight * 0.5f, slices);
-
-        // Second pillow
         drawRoundedCube(gl, bedX + (bedWidth - pillowWidth) / 2,
                 legHeight + frameThickness + mattressHeight,
                 bedZ + frameThickness * 2f + pillowDepth * 0.8f,
@@ -553,33 +562,20 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 pillowHeight * 0.5f, slices);
 
         // Draw Legs
-        setColor(gl, legColor);
+        setColor(gl, f.getPartColor("legs"));
         float legThickness = frameThickness * 1.2f;
-
-        // Front Left Leg
         drawCylinder(gl, bedX + legThickness, 0, bedZ + legThickness,
                 legThickness * 0.5f, legHeight, slices);
-
-        // Front Right Leg
         drawCylinder(gl, bedX + bedWidth - legThickness, 0, bedZ + legThickness,
                 legThickness * 0.5f, legHeight, slices);
-
-        // Back Left Leg
         drawCylinder(gl, bedX + legThickness, 0, bedZ + bedDepth - legThickness,
                 legThickness * 0.5f, legHeight, slices);
-
-        // Back Right Leg
         drawCylinder(gl, bedX + bedWidth - legThickness, 0, bedZ + bedDepth - legThickness,
                 legThickness * 0.5f, legHeight, slices);
     }
 
     // 3D drawing for sofa
     private void drawSofa3D(GL2 gl, Furniture f) {
-        Color fabricColor = f.getColor();
-        Color darkFabric = fabricColor.darker();
-        Color cushionColor = fabricColor.brighter();
-        Color legColor = new Color(70, 50, 30);
-
         float x = (float) f.getX();
         float z = (float) f.getZ();
         float w = (float) f.getWidth();
@@ -593,31 +589,41 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         float armW = w * 0.08f;
         int slices = 16;
 
+        if (f.isSelected()) {
+            gl.glPushAttrib(GL2.GL_CURRENT_BIT);
+            gl.glColor3f(1.0f, 1.0f, 0.0f);
+            gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+            drawBox(gl, x - 0.05f, 0, z - 0.05f,
+                    w + 0.1f, h + 0.1f, d + 0.1f);
+            gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+            gl.glPopAttrib();
+        }
+
         // Base Seat Platform
-        setColor(gl, darkFabric);
+        setColor(gl, f.getPartColor("base"));
         drawRoundedCube(gl, x, legH, z, w, seatH, d, 0.03f, slices);
 
         // Seat Cushions
         float gap = w * 0.015f;
         float cWidth = (w - 4 * gap) / 3;
-        setColor(gl, cushionColor);
+        setColor(gl, f.getPartColor("cushions"));
         for (int i = 0; i < 3; i++) {
             drawRoundedCube(gl, x + gap * (i + 1) + cWidth * i, legH + seatH, z + d * 0.05f,
                     cWidth, cushionH, d * 0.9f, 0.04f, slices);
         }
 
         // Backrest
-        setColor(gl, fabricColor);
+        setColor(gl, f.getPartColor("backrest"));
         drawRoundedCube(gl, x + armW * 0.5f, legH + seatH + cushionH, z + d * 0.01f,
                 w - armW, backH, d * 0.12f, 0.04f, slices);
 
         // Armrests
-        setColor(gl, darkFabric);
+        setColor(gl, f.getPartColor("arms"));
         drawRoundedCube(gl, x, legH + seatH, z, armW, backH, d, 0.05f, slices);
         drawRoundedCube(gl, x + w - armW, legH + seatH, z, armW, backH, d, 0.05f, slices);
 
         // Legs
-        setColor(gl, legColor);
+        setColor(gl, f.getPartColor("legs"));
         float legR = w * 0.015f;
         drawCylinder(gl, x + legR, 0, z + legR, legR, legH, slices);
         drawCylinder(gl, x + w - legR * 2, 0, z + legR, legR, legH, slices);
@@ -625,38 +631,27 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         drawCylinder(gl, x + w - legR * 2, 0, z + d - legR * 2, legR, legH, slices);
     }
 
-    // Helper method to draw rounded cubes
     private void drawRoundedCube(GL2 gl, float x, float y, float z,
             float width, float height, float depth,
             float radius, int slices) {
-        // Main center cube
         drawBox(gl, x + radius, y, z + radius,
                 width - 2 * radius, height, depth - 2 * radius);
-
-        // Front and back faces
         drawBox(gl, x + radius, y, z, width - 2 * radius, height, radius);
         drawBox(gl, x + radius, y, z + depth - radius, width - 2 * radius, height, radius);
-
-        // Left and right faces
         drawBox(gl, x, y, z + radius, radius, height, depth - 2 * radius);
         drawBox(gl, x + width - radius, y, z + radius, radius, height, depth - 2 * radius);
-
-        // 8 corner cylinders
         for (int i = 0; i < 4; i++) {
             float cx = (i % 2 == 0) ? x + radius : x + width - radius;
             float cz = (i < 2) ? z + radius : z + depth - radius;
-
             drawCylinder(gl, cx, y, cz, radius, height, slices);
         }
     }
 
-    // Helper method to draw cylinders
     private void drawCylinder(GL2 gl, float x, float y, float z,
             float radius, float height, int slices) {
         gl.glPushMatrix();
         gl.glTranslatef(x, y + height / 2, z);
 
-        // Draw sides
         gl.glBegin(GL2.GL_QUAD_STRIP);
         for (int i = 0; i <= slices; i++) {
             float angle = (float) (2.0 * Math.PI * i / slices);
@@ -669,7 +664,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         }
         gl.glEnd();
 
-        // Draw top
         gl.glBegin(GL2.GL_TRIANGLE_FAN);
         gl.glNormal3f(0, 1, 0);
         gl.glVertex3f(0, height / 2, 0);
@@ -679,7 +673,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         }
         gl.glEnd();
 
-        // Draw bottom
         gl.glBegin(GL2.GL_TRIANGLE_FAN);
         gl.glNormal3f(0, -1, 0);
         gl.glVertex3f(0, -height / 2, 0);
@@ -734,6 +727,257 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         gl.glColor3f(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f);
     }
 
+    private void drawFurnitureForPicking(GL2 gl, Furniture f, int baseId) {
+        float x = (float) f.getX();
+        float z = (float) f.getZ();
+        float w = (float) f.getWidth();
+        float d = (float) f.getDepth();
+        float h = (float) f.getHeight();
+        String subtype = f.getSubtype();
+
+        if (f.getType().equals("Chair")) {
+            float seatHeight = h * 0.5f;
+            float seatThickness = h * 0.05f;
+            float legThickness = w * 0.08f;
+            float legHeight = seatHeight;
+
+            switch (subtype) {
+                case "Standard":
+                    // Seat
+                    setPickColor(gl, baseId);
+                    partPickMap.put(baseId, "seat");
+                    drawBox(gl, x, seatHeight, z, w, seatThickness, d);
+                    // Backrest
+                    setPickColor(gl, baseId + 1);
+                    partPickMap.put(baseId + 1, "backrest");
+                    float backHeight = h * 0.7f;
+                    float backThickness = w * 0.05f;
+                    drawBox(gl, x, seatHeight + seatThickness, z, w, backHeight, backThickness);
+                    // Legs
+                    setPickColor(gl, baseId + 2);
+                    partPickMap.put(baseId + 2, "legs");
+                    drawBox(gl, x, 0, z, legThickness, legHeight, legThickness);
+                    drawBox(gl, x + w - legThickness, 0, z, legThickness, legHeight, legThickness);
+                    drawBox(gl, x, 0, z + d - legThickness, legThickness, legHeight, legThickness);
+                    drawBox(gl, x + w - legThickness, 0, z + d - legThickness, legThickness, legHeight, legThickness);
+                    break;
+
+                case "Armchair":
+                    // Seat
+                    setPickColor(gl, baseId);
+                    partPickMap.put(baseId, "seat");
+                    float radius = w * 0.05f;
+                    drawRoundedCube(gl, x + w * 0.1f, seatHeight, z + d * 0.1f,
+                            w * 0.8f, seatThickness * 1.5f, d * 0.8f, radius, 16);
+                    // Backrest
+                    setPickColor(gl, baseId + 1);
+                    partPickMap.put(baseId + 1, "backrest");
+                    drawRoundedCube(gl, x + w * 0.1f, seatHeight + seatThickness * 1.5f, z,
+                            w * 0.8f, h * 0.8f, d * 0.15f, radius, 16);
+                    // Armrests
+                    setPickColor(gl, baseId + 2);
+                    partPickMap.put(baseId + 2, "arms");
+                    drawRoundedCube(gl, x, seatHeight, z,
+                            w * 0.1f, h * 0.4f, d, radius, 16);
+                    drawRoundedCube(gl, x + w * 0.9f, seatHeight, z,
+                            w * 0.1f, h * 0.4f, d, radius, 16);
+                    // Legs
+                    setPickColor(gl, baseId + 3);
+                    partPickMap.put(baseId + 3, "legs");
+                    float adjustedLegHeight = seatHeight + seatThickness * 1.5f;
+                    drawBox(gl, x, 0, z,
+                            legThickness, adjustedLegHeight, legThickness);
+                    drawBox(gl, x + w - legThickness, 0, z,
+                            legThickness, adjustedLegHeight, legThickness);
+                    drawBox(gl, x, 0, z + d - legThickness,
+                            legThickness, adjustedLegHeight, legThickness);
+                    drawBox(gl, x + w - legThickness, 0, z + d - legThickness,
+                            legThickness, adjustedLegHeight, legThickness);
+                    break;
+
+                case "Dining":
+                    // Seat
+                    setPickColor(gl, baseId);
+                    partPickMap.put(baseId, "seat");
+                    drawRoundedCube(gl, x, seatHeight, z,
+                            w, seatThickness * 1.5f, d, w * 0.03f, 16);
+                    // Backrest
+                    setPickColor(gl, baseId + 1);
+                    partPickMap.put(baseId + 1, "backrest");
+                    float slatWidth = w * 0.25f;
+                    float slatSpacing = w * 0.05f;
+                    float slatHeight = h * 0.9f;
+                    float slatDepth = d * 0.05f;
+                    for (int i = 0; i < 3; i++) {
+                        float slatX = x + w * 0.1f + i * (slatWidth + slatSpacing);
+                        drawBox(gl, slatX, seatHeight + seatThickness * 1.5f, z,
+                                slatWidth, slatHeight, slatDepth);
+                    }
+                    // Legs
+                    setPickColor(gl, baseId + 2);
+                    partPickMap.put(baseId + 2, "legs");
+                    float legRadius = legThickness * 0.35f;
+                    float diningLegHeight = seatHeight;
+                    drawCylinder(gl, x + legRadius, 0, z + legRadius,
+                            legRadius, diningLegHeight, 16);
+                    drawCylinder(gl, x + w - legRadius, 0, z + legRadius,
+                            legRadius, diningLegHeight, 16);
+                    drawCylinder(gl, x + legRadius, 0, z + d - legRadius,
+                            legRadius, diningLegHeight, 16);
+                    drawCylinder(gl, x + w - legRadius, 0, z + d - legRadius,
+                            legRadius, diningLegHeight, 16);
+                    break;
+
+                default:
+                    // Fallback
+                    setPickColor(gl, baseId);
+                    partPickMap.put(baseId, "seat");
+                    drawBox(gl, x, seatHeight, z, w, seatThickness, d);
+                    setPickColor(gl, baseId + 1);
+                    partPickMap.put(baseId + 1, "backrest");
+                    drawBox(gl, x, seatHeight + seatThickness, z, w, h * 0.7f,
+                            w * 0.05f);
+                    setPickColor(gl, baseId + 2);
+                    partPickMap.put(baseId + 2, "legs");
+                    drawBox(gl, x, 0, z, legThickness, legHeight, legThickness);
+                    drawBox(gl, x + w - legThickness, 0, z, legThickness, legHeight, legThickness);
+                    drawBox(gl, x, 0, z + d - legThickness, legThickness, legHeight, legThickness);
+                    drawBox(gl, x + w - legThickness, 0, z + d - legThickness, legThickness, legHeight, legThickness);
+            }
+        } else if (f.getType().equals("Table")) {
+            float topThickness = h * 0.05f;
+            float legThickness = w * 0.08f;
+            float legHeight = h - topThickness;
+
+            setPickColor(gl, baseId);
+            partPickMap.put(baseId, "top");
+            drawBox(gl, x, legHeight, z, w, topThickness, d);
+
+            setPickColor(gl, baseId + 1);
+            partPickMap.put(baseId + 1, "legs");
+            drawBox(gl, x, 0, z, legThickness, legHeight, legThickness);
+            drawBox(gl, x + w - legThickness, 0, z, legThickness, legHeight, legThickness);
+            drawBox(gl, x, 0, z + d - legThickness, legThickness, legHeight, legThickness);
+            drawBox(gl, x + w - legThickness, 0, z + d - legThickness, legThickness, legHeight, legThickness);
+        } else if (f.getType().equals("Sofa")) {
+            float legH = h * 0.15f;
+            float seatH = h * 0.12f;
+            float cushionH = h * 0.12f;
+            float backH = h * 0.45f;
+            float armW = w * 0.08f;
+            int slices = 16;
+
+            setPickColor(gl, baseId);
+            partPickMap.put(baseId, "base");
+            drawRoundedCube(gl, x, legH, z, w, seatH, d, 0.03f, slices);
+
+            setPickColor(gl, baseId + 1);
+            partPickMap.put(baseId + 1, "cushions");
+            float gap = w * 0.015f;
+            float cWidth = (w - 4 * gap) / 3;
+            for (int i = 0; i < 3; i++) {
+                drawRoundedCube(gl, x + gap * (i + 1) + cWidth * i, legH + seatH, z + d * 0.05f,
+                        cWidth, cushionH, d * 0.9f, 0.04f, slices);
+            }
+
+            setPickColor(gl, baseId + 2);
+            partPickMap.put(baseId + 2, "backrest");
+            drawRoundedCube(gl, x + armW * 0.5f, legH + seatH + cushionH, z + d * 0.01f,
+                    w - armW, backH, d * 0.12f, 0.04f, slices);
+
+            setPickColor(gl, baseId + 3);
+            partPickMap.put(baseId + 3, "arms");
+            drawRoundedCube(gl, x, legH + seatH, z, armW, backH, d, 0.05f, slices);
+            drawRoundedCube(gl, x + w - armW, legH + seatH, z, armW, backH, d, 0.05f, slices);
+
+            setPickColor(gl, baseId + 4);
+            partPickMap.put(baseId + 4, "legs");
+            float legR = w * 0.015f;
+            drawCylinder(gl, x + legR, 0, z + legR, legR, legH, slices);
+            drawCylinder(gl, x + w - legR * 2, 0, z + legR, legR, legH, slices);
+            drawCylinder(gl, x + legR, 0, z + d - legR * 2, legR, legH, slices);
+            drawCylinder(gl, x + w - legR * 2, 0, z + d - legR * 2, legR, legH, slices);
+        } else if (f.getType().equals("Bed")) {
+            float frameThickness = 0.15f;
+            float mattressHeight = h * 0.25f;
+            float headboardHeight = h * 0.7f;
+            float legHeight = h * 0.1f;
+            float pillowWidth = w * 0.4f;
+            float pillowDepth = d * 0.15f;
+            float pillowHeight = mattressHeight * 0.3f;
+            int slices = 8;
+
+            setPickColor(gl, baseId);
+            partPickMap.put(baseId, "frame");
+            drawRoundedCube(gl, x, legHeight, z,
+                    w, frameThickness, d,
+                    frameThickness * 0.5f, slices);
+
+            setPickColor(gl, baseId + 1);
+            partPickMap.put(baseId + 1, "headboard");
+            drawRoundedCube(gl, x, legHeight, z - frameThickness * 0.5f,
+                    w, headboardHeight, frameThickness * 1.5f,
+                    frameThickness * 0.7f, slices);
+
+            setPickColor(gl, baseId + 2);
+            partPickMap.put(baseId + 2, "mattress");
+            drawRoundedCube(gl, x + frameThickness * 0.5f,
+                    legHeight + frameThickness,
+                    z + frameThickness * 0.5f,
+                    w - frameThickness,
+                    mattressHeight,
+                    d * 1.05f - frameThickness,
+                    frameThickness * 0.8f, slices);
+
+            setPickColor(gl, baseId + 3);
+            partPickMap.put(baseId + 3, "sheet");
+            drawRoundedCube(gl, x + frameThickness * 0.5f,
+                    legHeight + frameThickness + mattressHeight * 0.7f,
+                    z + frameThickness * 0.5f,
+                    w - frameThickness,
+                    mattressHeight * 0.3f,
+                    d - frameThickness,
+                    frameThickness * 0.8f, slices);
+
+            setPickColor(gl, baseId + 4);
+            partPickMap.put(baseId + 4, "pillows");
+            drawRoundedCube(gl, x + (w - pillowWidth) / 2,
+                    legHeight + frameThickness + mattressHeight,
+                    z + frameThickness * 2f,
+                    pillowWidth,
+                    pillowHeight,
+                    pillowDepth,
+                    pillowHeight * 0.5f, slices);
+            drawRoundedCube(gl, x + (w - pillowWidth) / 2,
+                    legHeight + frameThickness + mattressHeight,
+                    z + frameThickness * 2f + pillowDepth * 0.8f,
+                    pillowWidth,
+                    pillowHeight,
+                    pillowDepth,
+                    pillowHeight * 0.5f, slices);
+
+            setPickColor(gl, baseId + 5);
+            partPickMap.put(baseId + 5, "legs");
+            float legThickness = frameThickness * 1.2f;
+            drawCylinder(gl, x + legThickness, 0, z + legThickness,
+                    legThickness * 0.5f, legHeight, slices);
+            drawCylinder(gl, x + w - legThickness, 0, z + legThickness,
+                    legThickness * 0.5f, legHeight, slices);
+            drawCylinder(gl, x + legThickness, 0, z + d - legThickness,
+                    legThickness * 0.5f, legHeight, slices);
+            drawCylinder(gl, x + w - legThickness, 0, z + d - legThickness,
+                    legThickness * 0.5f, legHeight, slices);
+        } else {
+            setPickColor(gl, baseId);
+            partPickMap.put(baseId, "body");
+            drawBox(gl, x, 0, z, w, h, d);
+        }
+    }
+
+    private void setPickColor(GL2 gl, int id) {
+        gl.glColor3ub((byte) (id & 0xff), (byte) 0, (byte) 0);
+    }
+
     private void setupMouseListeners() {
         setFocusable(true);
         requestFocusInWindow();
@@ -747,48 +991,58 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 }
                 lastMouseX = e.getX();
                 lastMouseY = e.getY();
-                if (design != null && !is3DView) {
-                    Room room = design.getRoom();
-                    float scale = Math.min(getWidth() / (float) room.getLength(),
-                            getHeight() / (float) room.getWidth()) * 0.8f;
-
-                    System.out.println("Mouse pressed at (" + e.getX() + ", " + e.getY() + "), Scale: " + scale);
-                    draggedFurniture = null;
-
-                    // Calculate panel center with scale applied
-                    float panelCenterX = getWidth() / 2f;
-                    float panelCenterY = getHeight() / 2f;
-
-                    // Calculate room center in scaled coordinates
-                    float roomCenterX = (float) (room.getLength() / 2) * scale;
-                    float roomCenterY = (float) (room.getWidth() / 2) * scale;
-
-                    for (Furniture f : design.getFurnitureList()) {
-                        // Calculate furniture position relative to room center
-                        float x = (float) f.getX() * scale - roomCenterX + panelCenterX;
-                        float z = (float) f.getZ() * scale - roomCenterY + panelCenterY;
-                        float w = (float) f.getWidth() * scale;
-                        float d = (float) f.getDepth() * scale;
-
-                        float adjustedD = f.getType().equals("Sofa") ? d * 0.6f : d;
-
-                        System.out.println(f.getType() + " bounds: (" + x + ", " + z + ") to (" + (x + w) + ", "
-                                + (z + adjustedD) + ")");
-
-                        if (e.getX() >= x && e.getX() <= x + w &&
-                                e.getY() >= z && e.getY() <= z + adjustedD) {
-                            draggedFurniture = f;
-                            dragOffset = new Point(e.getX(), e.getY());
-                            parent.setSelectedFurniture(f);
-                            System.out.println("Selected " + f.getType() + " at (" + f.getX() + ", " + f.getZ() + ")");
-                            break;
-                        }
-                    }
-
-                    if (draggedFurniture == null) {
-                        System.out.println("No furniture selected at (" + e.getX() + ", " + e.getY() + ")");
+                if (design != null) {
+                    if (is3DView) {
+                        // Handle 3D picking
+                        pickFurnitureAt(e.getX(), e.getY());
                     } else {
-                        System.out.println("Drag offset initialized to: (" + dragOffset.x + ", " + dragOffset.y + ")");
+                        // Existing 2D selection logic
+                        Room room = design.getRoom();
+                        float scale = Math.min(getWidth() / (float) room.getLength(),
+                                getHeight() / (float) room.getWidth()) * 0.8f;
+
+                        System.out.println("Mouse pressed at (" + e.getX() + ", " + e.getY() + "), Scale: " + scale);
+                        draggedFurniture = null;
+
+                        float panelCenterX = getWidth() / 2f;
+                        float panelCenterY = getHeight() / 2f;
+                        float roomCenterX = (float) (room.getLength() / 2) * scale;
+                        float roomCenterY = (float) (room.getWidth() / 2) * scale;
+
+                        for (Furniture f : design.getFurnitureList()) {
+                            float x = (float) f.getX() * scale - roomCenterX + panelCenterX;
+                            float z = (float) f.getZ() * scale - roomCenterY + panelCenterY;
+                            float w = (float) f.getWidth() * scale;
+                            float d = (float) f.getDepth() * scale;
+
+                            float adjustedD = f.getType().equals("Sofa") ? d * 0.6f : d;
+
+                            if (e.getX() >= x && e.getX() <= x + w &&
+                                    e.getY() >= z && e.getY() <= z + adjustedD) {
+                                draggedFurniture = f;
+                                dragOffset = new Point(e.getX(), e.getY());
+                                parent.setSelectedFurniture(f);
+                                f.setSelected(true);
+                                for (Furniture other : design.getFurnitureList()) {
+                                    if (other != f)
+                                        other.setSelected(false);
+                                }
+                                System.out.println(
+                                        "Selected " + f.getType() + " at (" + f.getX() + ", " + f.getZ() + ")");
+                                break;
+                            }
+                        }
+
+                        if (draggedFurniture == null) {
+                            System.out.println("No furniture selected at (" + e.getX() + ", " + e.getY() + ")");
+                            parent.setSelectedFurniture(null);
+                            for (Furniture f : design.getFurnitureList()) {
+                                f.setSelected(false);
+                            }
+                        } else {
+                            System.out.println(
+                                    "Drag offset initialized to: (" + dragOffset.x + ", " + dragOffset.y + ")");
+                        }
                     }
                 }
             }
@@ -855,7 +1109,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                     double newX = draggedFurniture.getX() + deltaX / scale;
                     double newZ = draggedFurniture.getZ() + deltaY / scale;
 
-                    // Constrain to room boundaries
                     newX = Math.max(0, Math.min(newX, room.getLength() - draggedFurniture.getWidth()));
                     newZ = Math.max(0, Math.min(newZ, room.getWidth() - draggedFurniture.getDepth()));
 
@@ -883,6 +1136,103 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 System.out.println("VisualizationPanel lost focus");
             }
         });
+    }
+
+    private void pickFurnitureAt(int x, int y) {
+        GL2 gl = getGL().getGL2();
+
+        // Initialize picking maps
+        pickMap = new HashMap<>();
+        partPickMap = new HashMap<>();
+        int pickingId = 1;
+
+        // Set up selection buffer
+        IntBuffer selectBuffer = IntBuffer.allocate(512);
+        gl.glSelectBuffer(512, selectBuffer);
+
+        // Enter selection mode
+        gl.glRenderMode(GL2.GL_SELECT);
+
+        // Initialize name stack
+        gl.glInitNames();
+        gl.glPushName(0);
+
+        // Set up picking matrix
+        IntBuffer viewport = IntBuffer.allocate(4);
+        gl.glGetIntegerv(GL2.GL_VIEWPORT, viewport);
+        gl.glMatrixMode(GL2.GL_PROJECTION);
+        gl.glPushMatrix();
+        gl.glLoadIdentity();
+        glu.gluPickMatrix(x, getHeight() - y, 5.0, 5.0, viewport);
+        float aspect = (float) getWidth() / getHeight();
+        gl.glFrustum(-aspect, aspect, -1.0, 1.0, 5.0, 60.0);
+
+        gl.glMatrixMode(GL2.GL_MODELVIEW);
+        gl.glLoadIdentity();
+        gl.glTranslatef(0.0f, 0.0f, -10.0f * zoomFactor);
+        gl.glRotatef(rotationX, 1.0f, 0.0f, 0.0f);
+        gl.glRotatef(rotationY, 0.0f, 1.0f, 0.0f);
+
+        // Draw furniture for picking
+        if (design != null) {
+            for (Furniture f : design.getFurnitureList()) {
+                pickMap.put(pickingId, f);
+                gl.glLoadName(pickingId);
+                drawFurnitureForPicking(gl, f, pickingId);
+                pickingId += 5;
+            }
+        }
+
+        // Restore matrices
+        gl.glMatrixMode(GL2.GL_PROJECTION);
+        gl.glPopMatrix();
+        gl.glMatrixMode(GL2.GL_MODELVIEW);
+
+        // Exit selection mode and get hits
+        int hits = gl.glRenderMode(GL2.GL_RENDER);
+        System.out.println("Picking hits: " + hits + " at (" + x + ", " + y + ")");
+
+        // Process hits
+        int selectedId = 0;
+        float minZ = Float.MAX_VALUE;
+        int bufferIndex = 0;
+
+        for (int i = 0; i < hits; i++) {
+            int nameCount = selectBuffer.get(bufferIndex);
+            float z1 = (float) selectBuffer.get(bufferIndex + 1) / 0x7fffffff;
+            bufferIndex += 3;
+            for (int j = 0; j < nameCount; j++) {
+                int id = selectBuffer.get(bufferIndex + j);
+                if (z1 < minZ) {
+                    minZ = z1;
+                    selectedId = id;
+                }
+            }
+            bufferIndex += nameCount;
+        }
+
+        // Select furniture and part
+        selectedFurniture = pickMap.get(selectedId);
+        selectedPart = partPickMap.get(selectedId);
+
+        if (selectedFurniture != null) {
+            System.out.println("Selected furniture: " + selectedFurniture.getType() + ", part: " + selectedPart);
+            for (Furniture f : design.getFurnitureList()) {
+                f.setSelected(f == selectedFurniture);
+            }
+            parent.setSelectedFurniture(selectedFurniture);
+            parent.propertiesPanel.setSelectedPart(selectedPart);
+        } else {
+            System.out.println("No furniture selected at (" + x + ", " + y + ")");
+            for (Furniture f : design.getFurnitureList()) {
+                f.setSelected(false);
+            }
+            parent.setSelectedFurniture(null);
+            parent.propertiesPanel.setSelectedPart(null);
+        }
+
+        gl.glFlush();
+        repaint();
     }
 
     public void setDesign(Design design) {
@@ -913,22 +1263,5 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         rotationX = 0;
         rotationY = 0;
         repaint();
-    }
-}
-
-class Point2D {
-    private double x, y;
-
-    public Point2D(double x, double y) {
-        this.x = x;
-        this.y = y;
-    }
-
-    public double getX() {
-        return x;
-    }
-
-    public double getY() {
-        return y;
     }
 }
