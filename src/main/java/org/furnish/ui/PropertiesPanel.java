@@ -12,7 +12,9 @@ public class PropertiesPanel extends JPanel {
     private JButton colorButton;
     private JSlider shadeSlider;
     private JComboBox<String> subtypeCombo;
+    private JComboBox<String> partCombo;
     private Furniture furniture;
+    private String selectedPart;
 
     // Colors and fonts
     private final Color BACKGROUND_COLOR = new Color(23, 23, 38);
@@ -63,10 +65,25 @@ public class PropertiesPanel extends JPanel {
                 String newSubtype = (String) subtypeCombo.getSelectedItem();
                 furniture.setSubtype(newSubtype);
                 updateFurnitureProperties(newSubtype);
+                updatePartCombo();
                 repaintParent();
             }
         });
         fieldsPanel.add(createPropertyField("Subtype", subtypeCombo));
+        fieldsPanel.add(Box.createRigidArea(new Dimension(0, VERTICAL_GAP)));
+
+        // Part selection combo box
+        partCombo = new JComboBox<>();
+        styleComboBox(partCombo);
+        partCombo.addActionListener(e -> {
+            if (furniture != null) {
+                selectedPart = (String) partCombo.getSelectedItem();
+                if (selectedPart != null) {
+                    colorButton.setBackground(furniture.getPartColor(selectedPart));
+                }
+            }
+        });
+        fieldsPanel.add(createPropertyField("Part", partCombo));
         fieldsPanel.add(Box.createRigidArea(new Dimension(0, VERTICAL_GAP)));
 
         // Input fields
@@ -89,10 +106,15 @@ public class PropertiesPanel extends JPanel {
         colorButton = createStyledButton("Choose Color");
         colorButton.addActionListener(e -> {
             if (furniture != null) {
-                Color newColor = JColorChooser.showDialog(
-                        this, "Choose Color", furniture.getColor());
+                Color initialColor = (selectedPart != null) ? furniture.getPartColor(selectedPart)
+                        : furniture.getColor();
+                Color newColor = JColorChooser.showDialog(this, "Choose Color", initialColor);
                 if (newColor != null) {
-                    furniture.setColor(newColor);
+                    if (selectedPart != null) {
+                        furniture.setPartColor(selectedPart, newColor);
+                    } else {
+                        furniture.setColor(newColor);
+                    }
                     colorButton.setBackground(newColor);
                     repaintParent();
                 }
@@ -483,6 +505,7 @@ public class PropertiesPanel extends JPanel {
         if (f == null) {
             clearFields();
             subtypeCombo.setEnabled(false);
+            partCombo.setEnabled(false);
         } else {
             populateFields(f);
             colorButton.setBackground(f.getColor());
@@ -493,6 +516,8 @@ public class PropertiesPanel extends JPanel {
                 subtypeCombo.setSelectedItem(null);
                 subtypeCombo.setEnabled(false);
             }
+            updatePartCombo();
+            partCombo.setEnabled(true);
         }
     }
 
@@ -506,6 +531,9 @@ public class PropertiesPanel extends JPanel {
         colorButton.setBackground(FIELD_BACKGROUND);
         subtypeCombo.setSelectedItem(null);
         subtypeCombo.setEnabled(false);
+        partCombo.setModel(new DefaultComboBoxModel<>());
+        partCombo.setEnabled(false);
+        selectedPart = null;
     }
 
     private void populateFields(Furniture f) {
@@ -515,6 +543,35 @@ public class PropertiesPanel extends JPanel {
         depthField.setText(String.format("%.1f", f.getDepth()));
         heightField.setText(String.format("%.1f", f.getHeight()));
         shadeSlider.setValue((int) (f.getShadeFactor() * 100));
+    }
+
+    private void updatePartCombo() {
+        if (furniture == null) {
+            partCombo.setModel(new DefaultComboBoxModel<>());
+            return;
+        }
+        String[] parts = furniture.getPartColors().keySet().toArray(new String[0]);
+        partCombo.setModel(new DefaultComboBoxModel<>(parts));
+        if (selectedPart != null && furniture.getPartColors().containsKey(selectedPart)) {
+            partCombo.setSelectedItem(selectedPart);
+        } else {
+            partCombo.setSelectedIndex(0);
+            selectedPart = (String) partCombo.getSelectedItem();
+        }
+        if (selectedPart != null) {
+            colorButton.setBackground(furniture.getPartColor(selectedPart));
+        }
+    }
+
+    public void setSelectedPart(String part) {
+        this.selectedPart = part;
+        if (furniture != null && part != null) {
+            partCombo.setSelectedItem(part);
+            colorButton.setBackground(furniture.getPartColor(part));
+        } else {
+            partCombo.setSelectedIndex(-1);
+            colorButton.setBackground(furniture != null ? furniture.getColor() : FIELD_BACKGROUND);
+        }
     }
 
     private void repaintParent() {
