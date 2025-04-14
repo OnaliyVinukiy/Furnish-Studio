@@ -49,7 +49,6 @@ import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.UIManager;
-import javax.swing.undo.CannotRedoException;
 
 import org.furnish.core.Design;
 import org.furnish.core.Furniture;
@@ -73,6 +72,7 @@ public class FurnitureDesignApp extends JFrame {
     private final FurnitureUndoManager undoManager = new FurnitureUndoManager();
     private JButton undoButton;
     private JButton redoButton;
+    private JButton deleteButton;
 
     //-- refactor
 
@@ -475,6 +475,14 @@ public class FurnitureDesignApp extends JFrame {
         redoButton.setEnabled(false);
         redoButton.setToolTipText("Redo last action");
         toolBar.add(redoButton);
+
+        // Redo Button
+        deleteButton = createToolbarButton("Delete", "/images/delete.png");
+        deleteButton.addActionListener(e -> deleteSelectedFurniture()); 
+        deleteButton.setEnabled(false);
+        deleteButton.setToolTipText("Delete selected furniture item");
+        deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        toolBar.add(deleteButton);
 
         // Setup listener for undo/redo state changes
         undoManager.addUndoableEditListener(e -> updateUndoRedoButtons());
