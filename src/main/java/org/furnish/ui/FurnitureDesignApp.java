@@ -355,7 +355,7 @@ public class FurnitureDesignApp extends JFrame {
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         button.setOpaque(true);
-        button.setContentAreaFilled(false); // Prevent L&F from overriding background
+        button.setContentAreaFilled(false);
         button.setBackground(new Color(60, 60, 90));
         button.setForeground(Color.WHITE);
         button.setFont(new Font("Montserrat", Font.PLAIN, 12));
@@ -369,7 +369,7 @@ public class FurnitureDesignApp extends JFrame {
             @Override
             public void mouseExited(MouseEvent e) {
                 if (button instanceof JToggleButton && ((JToggleButton) button).isSelected()) {
-                    // Darker color when selected and mouse exits
+
                     button.setBackground(new Color(40, 40, 70));
                 } else {
                     button.setBackground(new Color(60, 60, 90));
@@ -511,19 +511,19 @@ public class FurnitureDesignApp extends JFrame {
         if (type.equals("Chair")) {
             switch (subtype) {
                 case "Standard":
-                    defaultColor = new Color(180, 120, 70); // Wood brown
+                    defaultColor = new Color(180, 120, 70);
                     width = 0.5;
                     depth = 0.5;
                     height = 0.8;
                     break;
                 case "Armchair":
-                    defaultColor = new Color(100, 80, 120); // Soft purple
+                    defaultColor = new Color(100, 80, 120);
                     width = 0.7;
                     depth = 0.7;
                     height = 0.9;
                     break;
                 case "Dining":
-                    defaultColor = new Color(120, 80, 50); // Dark wood
+                    defaultColor = new Color(120, 80, 50);
                     width = 0.45;
                     depth = 0.45;
                     height = 0.85;
@@ -540,7 +540,7 @@ public class FurnitureDesignApp extends JFrame {
             width = type.equals("Table") ? 1.0 : type.equals("Sofa") ? 1.2 : type.equals("Bed") ? 1.5 : 0.8;
             depth = type.equals("Table") ? 0.8 : type.equals("Sofa") ? 0.6 : type.equals("Bed") ? 2.0 : 0.4;
             height = type.equals("Table") ? 0.7 : type.equals("Sofa") ? 0.6 : type.equals("Bed") ? 0.5 : 1.0;
-            subtype = ""; // Non-chair types don't use subtypes
+            subtype = "";
         }
 
         double x = (room.getLength() - width) / 2;
@@ -576,7 +576,11 @@ public class FurnitureDesignApp extends JFrame {
     public void setSelectedFurniture(Furniture f) {
         selectedFurniture = f;
         propertiesPanel.update(f);
-        updateStatus("Selected " + f.getType() + " - Click and drag to move, use properties panel to edit");
+        if (f != null) {
+            updateStatus("Selected " + f.getType() + " - Click and drag to move, use properties panel to edit");
+        } else {
+            updateStatus("No furniture selected");
+        }
     }
 
     private void showErrorDialog(String message) {
