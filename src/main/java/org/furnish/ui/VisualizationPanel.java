@@ -450,24 +450,24 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         
         gl.glEnd();
         
-        // Draw border lines
+        // Draw border lines (now from inside)
         setColor(gl, Color.BLACK);
         gl.glLineWidth(2.0f);
         
-        // Border for front wall
+        // Border for front wall (drawn slightly inside)
         gl.glBegin(GL2.GL_LINE_LOOP);
-        gl.glVertex3f(0, 0, -borderThickness);
-        gl.glVertex3f(length, 0, -borderThickness);
-        gl.glVertex3f(length, height, -borderThickness);
-        gl.glVertex3f(0, height, -borderThickness);
+        gl.glVertex3f(borderThickness, borderThickness, borderThickness); // bottom left
+        gl.glVertex3f(length - borderThickness, borderThickness, borderThickness); // bottom right
+        gl.glVertex3f(length - borderThickness, height - borderThickness, borderThickness); // top right
+        gl.glVertex3f(borderThickness, height - borderThickness, borderThickness); // top left
         gl.glEnd();
         
-        // Border for left wall
+        // Border for left wall (drawn slightly inside)
         gl.glBegin(GL2.GL_LINE_LOOP);
-        gl.glVertex3f(-borderThickness, 0, 0);
-        gl.glVertex3f(-borderThickness, 0, width);
-        gl.glVertex3f(-borderThickness, height, width);
-        gl.glVertex3f(-borderThickness, height, 0);
+        gl.glVertex3f(borderThickness, borderThickness, borderThickness); // bottom front
+        gl.glVertex3f(borderThickness, borderThickness, width - borderThickness); // bottom back
+        gl.glVertex3f(borderThickness, height - borderThickness, width - borderThickness); // top back
+        gl.glVertex3f(borderThickness, height - borderThickness, borderThickness); // top front
         gl.glEnd();
         
         // Reset line width
