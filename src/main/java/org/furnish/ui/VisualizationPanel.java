@@ -5,9 +5,13 @@ import com.jogamp.opengl.*;
 import com.jogamp.opengl.glu.GLU;
 import com.jogamp.opengl.awt.GLJPanel;
 import com.jogamp.opengl.util.FPSAnimator;
-import java.nio.IntBuffer;
+import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureIO;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,6 +32,18 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
     private Map<Integer, Furniture> pickMap;
     private Map<Integer, String> partPickMap;
 
+    // refactor --
+
+    private float decorX = 0.01f; // Fixed to left wall
+    private float decorY = 0.5f;  // Normalized position (0-1)
+    private float decorZ = 0.5f;   // Normalized position (0-1)
+    private boolean isDraggingDecor = false;
+    private Point lastMousePos;
+
+    private Texture wallDecorTexture;
+
+    // refactor --
+
     public VisualizationPanel(FurnitureDesignApp parent) {
         super(new GLCapabilities(GLProfile.get(GLProfile.GL2)));
         this.parent = parent;
@@ -42,6 +58,9 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         setPreferredSize(new Dimension(1000, 900));
         addGLEventListener(this);
     }
+
+
+
 
     @Override
     public void init(GLAutoDrawable drawable) {
@@ -289,7 +308,28 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
     }
 
     private void draw3D(GL2 gl) {
+        if (design == null) return;
+
         Room room = design.getRoom();
+
+        // Enable lighting for better 3D effect
+        enableLighting(gl);
+        
+        // Draw floor
+        drawFloor(gl, room);
+
+        // Draw walls (4 walls to form a complete room)
+        drawWalls(gl, room);
+        
+        // Draw furniture (keep your existing furniture drawing code)
+        drawFurniture(gl);
+        
+        // Disable lighting if you don't need it for other elements
+        disableLighting(gl);
+
+
+        
+
 
         // Draw floor
         setColor(gl, room.getFloorColor());
@@ -331,6 +371,309 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
             }
         }
     }
+
+    // refactor --
+
+    private void enableLighting(GL2 gl) {
+        float[] lightAmbient = {0.5f, 0.5f, 0.5f, 1.0f};
+        float[] lightDiffuse = {0.7f, 0.7f, 0.7f, 1.0f};
+        float[] lightSpecular = {1.0f, 1.0f, 1.0f, 1.0f};
+        float[] lightPosition = {0.0f, 10.0f, 0.0f, 1.0f};
+
+        gl.glEnable(GL2.GL_LIGHTING);
+        gl.glEnable(GL2.GL_LIGHT0);
+        
+        gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, lightAmbient, 0);
+        gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, lightDiffuse, 0);
+        gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, lightSpecular, 0);
+        gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, lightPosition, 0);
+        
+        gl.glEnable(GL2.GL_COLOR_MATERIAL);
+        gl.glColorMaterial(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
+    }
+    private void disableLighting(GL2 gl) {
+        gl.glDisable(GL2.GL_LIGHTING);
+        gl.glDisable(GL2.GL_LIGHT0);
+    }
+
+    private void drawFloor(GL2 gl, Room room) {
+        setColor(gl, room.getFloorColor());
+        
+        float length = (float) room.getLength();
+        float width = (float) room.getWidth();
+        
+        // Draw floor as a quad
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glNormal3f(0, 1, 0); // Normal pointing up
+        gl.glVertex3f(0, 0, 0);
+        gl.glVertex3f(length, 0, 0);
+        gl.glVertex3f(length, 0, width);
+        gl.glVertex3f(0, 0, width);
+        gl.glEnd();
+        
+        // // Optional: Add grid lines for better visibility
+        // setColor(gl, Color.DARK_GRAY);
+        // gl.glBegin(GL2.GL_LINES);
+        // float gridSize = 1.0f; // 1 meter grid
+        // for (float x = 0; x <= length; x += gridSize) {
+        //     gl.glVertex3f(x, 0.01f, 0);
+        //     gl.glVertex3f(x, 0.01f, width);
+        // }
+        // for (float z = 0; z <= width; z += gridSize) {
+        //     gl.glVertex3f(0, 0.01f, z);
+        //     gl.glVertex3f(length, 0.01f, z);
+        // }
+        // gl.glEnd();
+    }
+
+    private void drawWalls(GL2 gl, Room room) {
+        setColor(gl, room.getWallColor());
+        
+        float length = (float) room.getLength();
+        float width = (float) room.getWidth();
+        float height = (float) room.getHeight();
+        float borderThickness = 0.02f;
+        
+        // Draw two connected walls forming a corner
+        gl.glBegin(GL2.GL_QUADS);
+        
+        // Wall 1 (Front wall - along length)
+        gl.glNormal3f(0, 0, 1);
+        gl.glVertex3f(0, 0, 0);
+        gl.glVertex3f(length, 0, 0);
+        gl.glVertex3f(length, height, 0);
+        gl.glVertex3f(0, height, 0);
+        
+        // Wall 2 (Left wall - along width, connected to Wall 1)
+        gl.glNormal3f(-1, 0, 0);
+        gl.glVertex3f(0, 0, 0);
+        gl.glVertex3f(0, 0, width);
+        gl.glVertex3f(0, height, width);
+        gl.glVertex3f(0, height, 0);
+        
+        gl.glEnd();
+        
+        // Draw border lines (now from inside)
+        setColor(gl, Color.BLACK);
+        gl.glLineWidth(2.0f);
+        
+        // Border for front wall (drawn slightly inside)
+        gl.glBegin(GL2.GL_LINE_LOOP);
+        gl.glVertex3f(borderThickness, borderThickness, borderThickness); // bottom left
+        gl.glVertex3f(length - borderThickness, borderThickness, borderThickness); // bottom right
+        gl.glVertex3f(length - borderThickness, height - borderThickness, borderThickness); // top right
+        gl.glVertex3f(borderThickness, height - borderThickness, borderThickness); // top left
+        gl.glEnd();
+        
+        // Border for left wall (drawn slightly inside)
+        gl.glBegin(GL2.GL_LINE_LOOP);
+        gl.glVertex3f(borderThickness, borderThickness, borderThickness); // bottom front
+        gl.glVertex3f(borderThickness, borderThickness, width - borderThickness); // bottom back
+        gl.glVertex3f(borderThickness, height - borderThickness, width - borderThickness); // top back
+        gl.glVertex3f(borderThickness, height - borderThickness, borderThickness); // top front
+        gl.glEnd();
+        
+        // Reset line width
+        gl.glLineWidth(1.0f);
+        
+        // Add image decoration to left wall (centered, inside the room)
+        float decorWidth = width * 0.3f;  // 30% of wall width
+        float decorHeight = height * 0.25f; // 25% of wall height
+        float decorYPos = height * 0.5f - decorHeight/2; // Vertical center
+        float decorZPos = width * 0.5f - decorWidth/2;   // Horizontal center
+        
+        // Load texture if not already loaded
+        if (wallDecorTexture == null) {
+            wallDecorTexture = loadTexture(gl);
+            if (wallDecorTexture == null) {
+                // Fallback: draw a colored rectangle if texture fails
+                setColor(gl, Color.RED);
+                gl.glBegin(GL2.GL_QUADS);
+                gl.glVertex3f(0.01f, decorYPos, decorZPos);
+                gl.glVertex3f(0.01f, decorYPos, decorZPos + decorWidth);
+                gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos + decorWidth);
+                gl.glVertex3f(0.01f, decorYPos + decorHeight, decorZPos);
+                gl.glEnd();
+                return;
+            }
+        }
+        
+        // Draw the image decoration
+        if (wallDecorTexture != null) {
+            drawWallImage(gl, decorYPos, decorZPos, decorWidth, decorHeight);
+        }
+        
+        addWallLamp(gl, room, decorYPos + decorHeight, decorZPos + decorWidth/2);
+    }
+
+    private Texture loadTexture(GL2 gl) {
+        try {
+            // Load from resources
+            InputStream stream = getClass().getResourceAsStream("/images/decor.png");
+            if (stream == null) {
+                System.err.println("Could not find texture in resources");
+                return null;
+            }
+            
+            Texture texture = TextureIO.newTexture(stream, true, "png");
+            texture.setTexParameteri(gl, GL2.GL_TEXTURE_MIN_FILTER, GL2.GL_LINEAR);
+            texture.setTexParameteri(gl, GL2.GL_TEXTURE_MAG_FILTER, GL2.GL_LINEAR);
+            return texture;
+        } catch (IOException | GLException e) {
+            System.err.println("Error loading texture: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void drawWallImage(GL2 gl, float yPos, float zPos, float width, float height) {
+        float depth = 0.01f;
+        
+        // Enable texture and set parameters
+        gl.glEnable(GL2.GL_TEXTURE_2D);
+        wallDecorTexture.enable(gl);
+        wallDecorTexture.bind(gl);
+        
+        // Set texture environment
+        gl.glTexEnvi(GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, GL2.GL_REPLACE);
+        
+        // Enable blending for transparency if needed
+        gl.glEnable(GL2.GL_BLEND);
+        gl.glBlendFunc(GL2.GL_SRC_ALPHA, GL2.GL_ONE_MINUS_SRC_ALPHA);
+        
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glNormal3f(1, 0, 0);
+        
+        gl.glTexCoord2f(0, 1);  // Bottom-left
+        gl.glVertex3f(depth, yPos, zPos);
+        
+        gl.glTexCoord2f(1, 1);  // Bottom-right
+        gl.glVertex3f(depth, yPos, zPos + width);
+        
+        gl.glTexCoord2f(1, 0);  // Top-right
+        gl.glVertex3f(depth, yPos + height, zPos + width);
+        
+        gl.glTexCoord2f(0, 0);  // Top-left
+        gl.glVertex3f(depth, yPos + height, zPos);
+        
+        gl.glEnd();
+        
+        // Clean up state
+        wallDecorTexture.disable(gl);
+        gl.glDisable(GL2.GL_TEXTURE_2D);
+        gl.glDisable(GL2.GL_BLEND);
+    }
+    
+    private void addWallLamp(GL2 gl, Room room, float baseY, float centerZ) {
+
+        float lampHeight = (float)(room.getHeight() * 0.15);
+        float lampWidth = (float)(room.getWidth() * 0.08);
+        float lampDepth = 0.1f;
+        
+        // Lamp base (wall mount)
+        setColor(gl, new Color(200, 200, 200));
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glNormal3f(1, 0, 0);
+        gl.glVertex3f(0.02f, baseY, centerZ - lampWidth/2);
+        gl.glVertex3f(0.02f, baseY, centerZ + lampWidth/2); 
+        gl.glVertex3f(0.02f, baseY - lampHeight*0.3f, centerZ + lampWidth/2); // Using lampHeight
+        gl.glVertex3f(0.02f, baseY - lampHeight*0.3f, centerZ - lampWidth/2);
+        gl.glEnd();
+        
+        // Lamp arm (extending from wall)
+        setColor(gl, new Color(180, 180, 180));
+        gl.glBegin(GL2.GL_QUADS);
+        // Top
+        gl.glNormal3f(0, 1, 0);
+        gl.glVertex3f(0.02f, baseY - lampHeight*0.25f, centerZ - 0.02f);
+        gl.glVertex3f(lampDepth, baseY - lampHeight*0.25f, centerZ - 0.02f);
+        gl.glVertex3f(lampDepth, baseY - lampHeight*0.25f, centerZ + 0.02f);
+        gl.glVertex3f(0.02f, baseY - lampHeight*0.25f, centerZ + 0.02f);
+        // Bottom
+        gl.glNormal3f(0, -1, 0);
+        gl.glVertex3f(0.02f, baseY - 0.07f, centerZ - 0.02f);
+        gl.glVertex3f(lampDepth, baseY - 0.07f, centerZ - 0.02f);
+        gl.glVertex3f(lampDepth, baseY - 0.07f, centerZ + 0.02f);
+        gl.glVertex3f(0.02f, baseY - 0.07f, centerZ + 0.02f);
+        // Front
+        gl.glNormal3f(0, 0, 1);
+        gl.glVertex3f(0.02f, baseY - 0.07f, centerZ + 0.02f);
+        gl.glVertex3f(lampDepth, baseY - 0.07f, centerZ + 0.02f);
+        gl.glVertex3f(lampDepth, baseY - 0.03f, centerZ + 0.02f);
+        gl.glVertex3f(0.02f, baseY - 0.03f, centerZ + 0.02f);
+        // Back
+        gl.glNormal3f(0, 0, -1);
+        gl.glVertex3f(0.02f, baseY - 0.07f, centerZ - 0.02f);
+        gl.glVertex3f(lampDepth, baseY - 0.07f, centerZ - 0.02f);
+        gl.glVertex3f(lampDepth, baseY - 0.03f, centerZ - 0.02f);
+        gl.glVertex3f(0.02f, baseY - 0.03f, centerZ - 0.02f);
+        gl.glEnd();
+        
+        // Lamp shade (bulb housing)
+        setColor(gl, new Color(240, 240, 200)); // Off-white shade
+        gl.glBegin(GL2.GL_QUADS);
+        // Front
+        gl.glNormal3f(0, 0, 1);
+        gl.glVertex3f(lampDepth, baseY - lampHeight*0.7f, centerZ - 0.05f);
+        gl.glVertex3f(lampDepth, baseY - lampHeight*0.7f, centerZ + 0.05f);
+        gl.glVertex3f(lampDepth, baseY - lampHeight*0.2f, centerZ + 0.03f); 
+        gl.glVertex3f(lampDepth, baseY - lampHeight*0.2f, centerZ - 0.03f);
+        // Back
+        gl.glNormal3f(0, 0, -1);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.1f, centerZ - 0.05f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.1f, centerZ + 0.05f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.03f, centerZ + 0.03f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.03f, centerZ - 0.03f);
+        // Sides
+        gl.glNormal3f(1, 0, 0);
+        gl.glVertex3f(lampDepth, baseY - 0.1f, centerZ - 0.05f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.1f, centerZ - 0.05f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.03f, centerZ - 0.03f);
+        gl.glVertex3f(lampDepth, baseY - 0.03f, centerZ - 0.03f);
+        
+        gl.glVertex3f(lampDepth, baseY - 0.1f, centerZ + 0.05f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.1f, centerZ + 0.05f);
+        gl.glVertex3f(lampDepth - 0.02f, baseY - 0.03f, centerZ + 0.03f);
+        gl.glVertex3f(lampDepth, baseY - 0.03f, centerZ + 0.03f);
+        gl.glEnd();
+        
+        // Light bulb (yellow glow)
+        setColor(gl, new Color(255, 255, 150));
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glNormal3f(-1, 0, 0);
+        gl.glVertex3f(lampDepth - 0.01f, baseY - lampHeight*0.5f, centerZ - 0.03f);
+        gl.glVertex3f(lampDepth - 0.01f, baseY - lampHeight*0.5f, centerZ + 0.03f);
+        gl.glVertex3f(lampDepth - 0.01f, baseY - lampHeight*0.4f, centerZ + 0.03f);
+        gl.glVertex3f(lampDepth - 0.01f, baseY - lampHeight*0.4f, centerZ - 0.03f);
+        gl.glEnd();
+    }
+
+    private void drawFurniture(GL2 gl) {
+        // Keep your existing furniture drawing code here
+        for (Furniture f : design.getFurnitureList()) {
+            if (f.getType().equals("Chair")) {
+                drawChair3D(gl, f);
+            } else if (f.getType().equals("Table")) {
+                drawTable3D(gl, f);
+            } else if (f.getType().equals("Sofa")) {
+                drawSofa3D(gl, f);
+            } else if (f.getType().equals("Bed")) {
+                drawBed3D(gl, f);
+            } else {
+                setColor(gl, f.getColor());
+                drawBox(gl,
+                        (float) f.getX(),
+                        0f,
+                        (float) f.getZ(),
+                        (float) f.getWidth(),
+                        (float) f.getHeight(),
+                        (float) f.getDepth());
+            }
+        }
+    }
+
+    // end refactor --
+
+
 
     // 3D drawing for chair
     private void drawChair3D(GL2 gl, Furniture f) {

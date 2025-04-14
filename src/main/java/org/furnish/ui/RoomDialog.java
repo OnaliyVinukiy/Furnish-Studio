@@ -3,6 +3,8 @@ package org.furnish.ui;
 import org.furnish.core.Room;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 class RoomDialog extends JDialog {
     private JTextField lengthField, widthField, heightField;
@@ -12,25 +14,27 @@ class RoomDialog extends JDialog {
 
     public RoomDialog(JFrame parent) {
         super(parent, "New Room", true);
-        setLayout(new GridLayout(0, 2, 10, 10));
-        setSize(300, 250);
-        setLocationRelativeTo(parent);
-
-        add(new JLabel("Length (m):"));
-        lengthField = new JTextField("5.0", 5);
-        add(lengthField);
-
-        add(new JLabel("Width (m):"));
-        widthField = new JTextField("5.0", 5);
-        add(widthField);
-
-        add(new JLabel("Height (m):"));
-        heightField = new JTextField("3.0", 5);
-        add(heightField);
-
-        add(new JLabel("Floor Color:"));
+        
+        // Main panel with GridLayout (0, 2, 10, 10)
+        JPanel gridPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+        
+        // Add components to gridPanel
+        gridPanel.add(new JLabel("Length (m) Right Wall:"));
+        lengthField = new JTextField("5.0", 15);  // Increased column size
+        gridPanel.add(lengthField);
+    
+        gridPanel.add(new JLabel("Length (m) Left Wall:"));
+        widthField = new JTextField("5.0", 15);   // Increased column size
+        gridPanel.add(widthField);
+    
+        gridPanel.add(new JLabel("Height (m):"));
+        heightField = new JTextField("3.0", 15);  // Increased column size
+        gridPanel.add(heightField);
+    
+        gridPanel.add(new JLabel("Floor Color:"));
         floorColorButton = new JButton("Choose");
         floorColorButton.setBackground(floorColor);
+        floorColorButton.setPreferredSize(new Dimension(100, 25)); // Set button size
         floorColorButton.addActionListener(e -> {
             Color c = JColorChooser.showDialog(this, "Choose Floor Color", floorColor);
             if (c != null) {
@@ -38,11 +42,12 @@ class RoomDialog extends JDialog {
                 floorColorButton.setBackground(c);
             }
         });
-        add(floorColorButton);
-
-        add(new JLabel("Wall Color:"));
+        gridPanel.add(floorColorButton);
+    
+        gridPanel.add(new JLabel("Wall Color:"));
         wallColorButton = new JButton("Choose");
         wallColorButton.setBackground(wallColor);
+        wallColorButton.setPreferredSize(new Dimension(100, 25)); // Set button size
         wallColorButton.addActionListener(e -> {
             Color c = JColorChooser.showDialog(this, "Choose Wall Color", wallColor);
             if (c != null) {
@@ -50,22 +55,46 @@ class RoomDialog extends JDialog {
                 wallColorButton.setBackground(c);
             }
         });
-        add(wallColorButton);
-
+        gridPanel.add(wallColorButton);
+    
         JButton okButton = new JButton("OK");
+        okButton.setPreferredSize(new Dimension(100, 30)); // Set button size
         okButton.addActionListener(e -> {
             if (validateInputs()) {
                 ok = true;
                 setVisible(false);
             }
         });
-        add(okButton);
-
+        gridPanel.add(okButton);
+    
         JButton cancelButton = new JButton("Cancel");
+        cancelButton.setPreferredSize(new Dimension(100, 30)); // Set button size
         cancelButton.addActionListener(e -> setVisible(false));
-        add(cancelButton);
+        gridPanel.add(cancelButton);
+    
+        // Create a padding panel with EmptyBorder
+        JPanel paddingPanel = new JPanel(new BorderLayout());
+        paddingPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // Increased padding
+        paddingPanel.add(gridPanel, BorderLayout.CENTER);
+    
+        // Set the paddingPanel as the content pane
+        setContentPane(paddingPanel);
+        
+        // Set preferred size for the dialog
+        setPreferredSize(new Dimension(400, 300)); // Custom size
+        
+        pack();
+        setLocationRelativeTo(parent); // This centers the dialog
+        
+        // Ensure dialog appears in center even when resized
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                setLocationRelativeTo(parent);
+            }
+        });
     }
-
+    
     private boolean validateInputs() {
         try {
             double length = Double.parseDouble(lengthField.getText());
@@ -95,3 +124,6 @@ class RoomDialog extends JDialog {
         return new Room(length, width, height, floorColor, wallColor);
     }
 }
+
+
+
