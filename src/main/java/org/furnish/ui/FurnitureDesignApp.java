@@ -476,10 +476,10 @@ public class FurnitureDesignApp extends JFrame {
         redoButton.setToolTipText("Redo last action");
         toolBar.add(redoButton);
 
-        // Redo Button
+        // Delete Button
         deleteButton = createToolbarButton("Delete", "/images/delete.png");
         deleteButton.addActionListener(e -> deleteSelectedFurniture()); 
-        deleteButton.setEnabled(false);
+        deleteButton.setEnabled(true);
         deleteButton.setToolTipText("Delete selected furniture item");
         deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         toolBar.add(deleteButton);
