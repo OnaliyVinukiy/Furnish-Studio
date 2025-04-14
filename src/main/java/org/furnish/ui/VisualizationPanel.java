@@ -34,15 +34,9 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
     // refactor --
 
-    private float decorX = 0.01f; // Fixed to left wall
-    private float decorY = 0.5f;  // Normalized position (0-1)
-    private float decorZ = 0.5f;   // Normalized position (0-1)
-    private boolean isDraggingDecor = false;
-    private Point lastMousePos;
-
     private Texture wallDecorTexture;
 
-    // refactor --
+    // -- end refactor
 
     public VisualizationPanel(FurnitureDesignApp parent) {
         super(new GLCapabilities(GLProfile.get(GLProfile.GL2)));

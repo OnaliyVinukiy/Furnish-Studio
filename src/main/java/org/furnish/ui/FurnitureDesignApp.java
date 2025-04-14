@@ -743,8 +743,6 @@ public class FurnitureDesignApp extends JFrame {
         currentDesign.addFurniture(f);
         undoManager.addFurnitureEdit(currentDesign, f, true);
         setSelectedFurniture(f);
-        // updateStatus("Added " + (type.equals("Chair") ? subtype + " " : "") + type + " to the design at (" + x + ", "
-        //         + z + ")");
 
         updateStatus("Added " + type + (subtype.isEmpty() ? "" : " " + subtype));
 
