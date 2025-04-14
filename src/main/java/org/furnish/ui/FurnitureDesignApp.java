@@ -313,6 +313,19 @@ public class FurnitureDesignApp extends JFrame {
             view2D3DToggle.setText(newText);
             view2D3DToggle.setIcon(loadResizedIcon(newIconPath, 20, 20));
 
+            if(is3D) {
+                visualizationPanel.zoomIn();
+                visualizationPanel.zoomIn();
+                visualizationPanel.zoomIn();
+                visualizationPanel.zoomIn();
+            } else {
+                visualizationPanel.resetView();
+                visualizationPanel.zoomIn();
+                visualizationPanel.zoomIn();
+                visualizationPanel.zoomIn();
+                visualizationPanel.zoomIn();
+            }
+
         });
 
         toolBar.add(view2D3DToggle);
@@ -450,6 +463,11 @@ public class FurnitureDesignApp extends JFrame {
             view2D3DToggle.setText("2D View");
             updateStatus("New room created: " + dialog.getRoom().toString());
             repaint();
+
+            visualizationPanel.zoomIn();
+            visualizationPanel.zoomIn();
+            visualizationPanel.zoomIn();
+            visualizationPanel.zoomIn();
         }
     }
 
