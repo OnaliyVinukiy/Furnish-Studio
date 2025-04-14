@@ -1,7 +1,3 @@
-Below is a `README.md` file written in Markdown format for your `FurnitureDesignApp` project. It provides an overview of the application, instructions for setup and usage, and details about its features and structure.
-
----
-
 # Furniture Design App
 ![Java](https://img.shields.io/badge/Java-22-orange)
 ![Swing](https://img.shields.io/badge/UI-Swing-blue)
