@@ -58,10 +58,15 @@ public class FurnitureUndoManager extends UndoManager {
                 design.removeFurniture(furniture);
             }
         }
-        
+
+        @Override
+        public boolean canUndo() {
+            return true;  
+        }
+
         @Override
         public boolean canRedo() {
-            return true;  // Ensure this returns true when redo is possible
+            return true;  
         }
 
         @Override
