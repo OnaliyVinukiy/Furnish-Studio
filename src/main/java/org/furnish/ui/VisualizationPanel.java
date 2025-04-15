@@ -496,7 +496,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
     public void setToggleGrid(boolean value) {
         this.toggleGrid = value;
-        repaint();
     }
     
     public boolean getToggleGrid() {
