@@ -478,20 +478,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         gl.glVertex3f(length, 0, width);
         gl.glVertex3f(0, 0, width);
         gl.glEnd();
-        
-        // // Optional: Add grid lines for better visibility
-        // setColor(gl, Color.DARK_GRAY);
-        // gl.glBegin(GL2.GL_LINES);
-        // float gridSize = 1.0f; // 1 meter grid
-        // for (float x = 0; x <= length; x += gridSize) {
-        //     gl.glVertex3f(x, 0.01f, 0);
-        //     gl.glVertex3f(x, 0.01f, width);
-        // }
-        // for (float z = 0; z <= width; z += gridSize) {
-        //     gl.glVertex3f(0, 0.01f, z);
-        //     gl.glVertex3f(length, 0.01f, z);
-        // }
-        // gl.glEnd();
     }
 
     public void setToggleGrid(boolean value) {
