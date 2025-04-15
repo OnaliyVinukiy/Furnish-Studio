@@ -73,6 +73,7 @@ public class FurnitureDesignApp extends JFrame {
     private JButton undoButton;
     private JButton redoButton;
     private JButton deleteButton;
+    private JButton gridButton;
 
     //-- refactor
 
@@ -427,8 +428,16 @@ public class FurnitureDesignApp extends JFrame {
         view2D3DToggle = new JToggleButton("3D View", loadResizedIcon("/images/3d.png", 20, 20));
         styleToolbarButton(view2D3DToggle);
 
+
         view2D3DToggle.addActionListener(e -> {
             boolean is3D = view2D3DToggle.isSelected();
+
+            if (is3D) {
+                gridButton.setEnabled(true);
+            }else{
+                gridButton.setEnabled(false);
+            }
+
             visualizationPanel.set3DView(is3D);
 
             String newText = is3D ? "2D View" : "3D View";
@@ -484,6 +493,18 @@ public class FurnitureDesignApp extends JFrame {
         deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         toolBar.add(deleteButton);
 
+        this.visualizationPanel = new VisualizationPanel(this);
+        
+        gridButton = createToolbarButton("Grid", "/images/pixels.png");
+        gridButton.addActionListener(e -> {
+            boolean updatedState = !visualizationPanel.getToggleGrid();
+            visualizationPanel.setToggleGrid(updatedState);
+        });
+        gridButton.setToolTipText("Toggle 3D View Grid Visibility");
+        gridButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        toolBar.add(gridButton);
+        
+        
         // Setup listener for undo/redo state changes
         undoManager.addUndoableEditListener(e -> updateUndoRedoButtons());
 
