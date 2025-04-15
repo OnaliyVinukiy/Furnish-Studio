@@ -34,15 +34,11 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
     // refactor --
 
-    private float decorX = 0.01f; // Fixed to left wall
-    private float decorY = 0.5f;  // Normalized position (0-1)
-    private float decorZ = 0.5f;   // Normalized position (0-1)
-    private boolean isDraggingDecor = false;
-    private Point lastMousePos;
-
     private Texture wallDecorTexture;
+    private Point selectionStart = null;
+    private Point selectionEnd = null;
 
-    // refactor --
+    // -- end refactor
 
     public VisualizationPanel(FurnitureDesignApp parent) {
         super(new GLCapabilities(GLProfile.get(GLProfile.GL2)));
@@ -1328,18 +1324,20 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
+                lastMouseX = e.getX();
+                lastMouseY = e.getY();
+                
                 if (!hasFocus()) {
                     requestFocusInWindow();
                     System.out.println("Regained focus on mouse press");
                 }
-                lastMouseX = e.getX();
-                lastMouseY = e.getY();
+                
                 if (design != null) {
                     if (is3DView) {
                         // Handle 3D picking
                         pickFurnitureAt(e.getX(), e.getY());
                     } else {
-                        // Existing 2D selection logic
+                        // 2D selection logic
                         Room room = design.getRoom();
                         float scale = Math.min(getWidth() / (float) room.getLength(),
                                 getHeight() / (float) room.getWidth()) * 0.8f;
@@ -1382,17 +1380,37 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                             for (Furniture f : design.getFurnitureList()) {
                                 f.setSelected(false);
                             }
+                            // Initialize selection rectangle
+                            selectionStart = new Point(e.getX(), e.getY());
+                            selectionEnd = selectionStart;
                         } else {
                             System.out.println(
                                     "Drag offset initialized to: (" + dragOffset.x + ", " + dragOffset.y + ")");
                         }
                     }
                 }
+                repaint();
             }
+
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                draggedFurniture = null;
+                if (!is3DView) {
+                    if (selectionStart != null) {
+                        // Handle selection completion
+                        if (selectionStart.equals(selectionEnd)) {
+                            // Click without drag - clear selection
+                            parent.setSelectedFurniture(null);
+                            for (Furniture f : design.getFurnitureList()) {
+                                f.setSelected(false);
+                            }
+                        }
+                        selectionStart = null;
+                        selectionEnd = null;
+                    }
+                    draggedFurniture = null;
+                }
+                repaint();
             }
 
             @Override
@@ -1434,38 +1452,93 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 }
             }
 
+            // @Override
+            // public void mouseDragged(MouseEvent e) {
+            //     if (is3DView && draggedFurniture == null) {
+            //         double deltaX = e.getX() - lastMouseX;
+            //         double deltaY = e.getY() - lastMouseY;
+            //         rotationY += deltaX * 0.5f;
+            //         rotationX += deltaY * 0.5f;
+            //         repaint();
+            //     } else if (!is3DView && draggedFurniture != null) {
+            //         Room room = design.getRoom();
+            //         float scale = Math.min(getWidth() / (float) room.getLength(),
+            //                 getHeight() / (float) room.getWidth()) * 0.8f;
+
+            //         double deltaX = e.getX() - dragOffset.x;
+            //         double deltaY = e.getY() - dragOffset.y;
+            //         double newX = draggedFurniture.getX() + deltaX / scale;
+            //         double newZ = draggedFurniture.getZ() + deltaY / scale;
+
+            //         newX = Math.max(0, Math.min(newX, room.getLength() - draggedFurniture.getWidth()));
+            //         newZ = Math.max(0, Math.min(newZ, room.getWidth() - draggedFurniture.getDepth()));
+
+            //         draggedFurniture.setX(newX);
+            //         draggedFurniture.setZ(newZ);
+            //         parent.propertiesPanel.update(draggedFurniture);
+            //         System.out.println("Dragging " + draggedFurniture.getType() + " to (" + newX + ", " + newZ + ")");
+
+            //         dragOffset = new Point(e.getX(), e.getY());
+            //         repaint();
+            //     }
+            //     lastMouseX = e.getX();
+            //     lastMouseY = e.getY();
+            // }
+        
+
             @Override
             public void mouseDragged(MouseEvent e) {
                 if (is3DView && draggedFurniture == null) {
+                    // 3D view rotation
                     double deltaX = e.getX() - lastMouseX;
                     double deltaY = e.getY() - lastMouseY;
                     rotationY += deltaX * 0.5f;
                     rotationX += deltaY * 0.5f;
-                    repaint();
-                } else if (!is3DView && draggedFurniture != null) {
-                    Room room = design.getRoom();
-                    float scale = Math.min(getWidth() / (float) room.getLength(),
-                            getHeight() / (float) room.getWidth()) * 0.8f;
+                } 
+                else if (!is3DView) {
+                    if (draggedFurniture != null && design != null) {
+                        // 2D furniture dragging with updated movement
+                        Room room = design.getRoom();
+                        float scale = Math.min(getWidth() / (float) room.getLength(),
+                                            getHeight() / (float) room.getWidth()) * 0.8f;
 
-                    double deltaX = e.getX() - dragOffset.x;
-                    double deltaY = e.getY() - dragOffset.y;
-                    double newX = draggedFurniture.getX() + deltaX / scale;
-                    double newZ = draggedFurniture.getZ() + deltaY / scale;
+                        // Calculate movement deltas (with Y inversion)
+                        double deltaX = e.getX() - dragOffset.getX();
+                        double deltaY = dragOffset.getY() - e.getY();  // Inverted Y movement
 
-                    newX = Math.max(0, Math.min(newX, room.getLength() - draggedFurniture.getWidth()));
-                    newZ = Math.max(0, Math.min(newZ, room.getWidth() - draggedFurniture.getDepth()));
+                        // Calculate new position
+                        double newX = draggedFurniture.getX() + deltaX / scale;
+                        double newZ = draggedFurniture.getZ() + deltaY / scale;
 
-                    draggedFurniture.setX(newX);
-                    draggedFurniture.setZ(newZ);
-                    parent.propertiesPanel.update(draggedFurniture);
-                    System.out.println("Dragging " + draggedFurniture.getType() + " to (" + newX + ", " + newZ + ")");
+                        // Boundary checking
+                        newX = Math.max(0, Math.min(newX, room.getLength() - draggedFurniture.getWidth()));
+                        newZ = Math.max(0, Math.min(newZ, room.getWidth() - draggedFurniture.getDepth()));
 
-                    dragOffset = new Point(e.getX(), e.getY());
-                    repaint();
+                        // Update position
+                        draggedFurniture.setX(newX);
+                        draggedFurniture.setZ(newZ);
+                        
+                        // Update UI
+                        parent.propertiesPanel.update(draggedFurniture);
+                        System.out.println("Dragging " + draggedFurniture.getType() + " to (" + newX + ", " + newZ + ")");
+
+                        // Update dragOffset for continuous dragging
+                        dragOffset = new Point(e.getX(), e.getY());
+                    } else if (selectionStart != null) {
+                        // Update selection rectangle
+                        selectionEnd = new Point(e.getX(), e.getY());
+                    }
                 }
+                
+                // Update last mouse position
                 lastMouseX = e.getX();
                 lastMouseY = e.getY();
-            }
+                repaint();
+            }       
+        
+        
+        
+        
         });
 
         addFocusListener(new FocusListener() {
