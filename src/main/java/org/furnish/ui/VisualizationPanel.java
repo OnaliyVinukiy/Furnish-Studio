@@ -58,8 +58,9 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
     private Point selectionStart = null;
     private Point selectionEnd = null;
     private GLUT glut = new GLUT();
+    private boolean toggleGrid = false;
 
-    // -- end refactor
+    // -- end refactor    
 
     public VisualizationPanel(FurnitureDesignApp parent) {
         super(new GLCapabilities(GLProfile.get(GLProfile.GL2)));
@@ -173,10 +174,10 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         int padding = 20;
         
         // Top label (North)
-        drawText(gl, "TOP", getWidth()/2 - 15, padding, labelColor);
+        drawText(gl, "ROOM BACK", getWidth()/2 - 15, padding, labelColor);
         
         // Bottom label (South)
-        drawText(gl, "BOTTOM", getWidth()/2 - 25, getHeight() - padding, labelColor);
+        drawText(gl, "ROOM FRONT", getWidth()/2 - 25, getHeight() - padding, labelColor);
         
         // Left label (West)
         drawText(gl, "LEFT", padding, getHeight()/2, labelColor);
@@ -383,6 +384,11 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         // Draw floor
         drawFloor(gl, room);
 
+        if (getToggleGrid()) {
+            toggleGrid(gl, room);
+        }
+        
+
         // Draw walls (4 walls to form a complete room)
         drawWalls(gl, room);
         
@@ -391,9 +397,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         
         // Disable lighting if you don't need it for other elements
         disableLighting(gl);
-
-
-        
 
 
         // Draw floor
@@ -489,6 +492,35 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         //     gl.glVertex3f(length, 0.01f, z);
         // }
         // gl.glEnd();
+    }
+
+    public void setToggleGrid(boolean value) {
+        this.toggleGrid = value;
+    }
+    
+    public boolean getToggleGrid() {
+        return this.toggleGrid;
+    }
+    
+
+    private  void toggleGrid(GL2 gl, Room room){
+        setColor(gl, room.getFloorColor());
+        
+        float length = (float) room.getLength();
+        float width = (float) room.getWidth();
+        // Optional: Add grid lines for better visibility
+        setColor(gl, Color.DARK_GRAY);
+        gl.glBegin(GL2.GL_LINES);
+        float gridSize = 1.0f; // 1 meter grid
+        for (float x = 0; x <= length; x += gridSize) {
+            gl.glVertex3f(x, 0.01f, 0);
+            gl.glVertex3f(x, 0.01f, width);
+        }
+        for (float z = 0; z <= width; z += gridSize) {
+            gl.glVertex3f(0, 0.01f, z);
+            gl.glVertex3f(length, 0.01f, z);
+        }
+        gl.glEnd();
     }
 
     private void drawWalls(GL2 gl, Room room) {
@@ -1732,6 +1764,11 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         System.out.println("View mode set to: " + (is3DView ? "3D" : "2D"));
         repaint();
     }
+
+    public boolean get3DView() {
+        return this.is3DView;
+    }
+
 
     public void zoomIn() {
         zoomFactor *= 1.1f;
