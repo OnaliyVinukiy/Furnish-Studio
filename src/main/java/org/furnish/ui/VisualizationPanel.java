@@ -1,19 +1,39 @@
 package org.furnish.ui;
 
-import org.furnish.core.*;
-import com.jogamp.opengl.*;
-import com.jogamp.opengl.glu.GLU;
-import com.jogamp.opengl.awt.GLJPanel;
-import com.jogamp.opengl.util.FPSAnimator;
-import com.jogamp.opengl.util.texture.Texture;
-import com.jogamp.opengl.util.texture.TextureIO;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Point;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.furnish.core.Design;
+import org.furnish.core.Furniture;
+import org.furnish.core.Room;
+
+import com.jogamp.opengl.GL;
+import com.jogamp.opengl.GL2;
+import com.jogamp.opengl.GLAutoDrawable;
+import com.jogamp.opengl.GLCapabilities;
+import com.jogamp.opengl.GLEventListener;
+import com.jogamp.opengl.GLException;
+import com.jogamp.opengl.GLProfile;
+import com.jogamp.opengl.awt.GLJPanel;
+import com.jogamp.opengl.glu.GLU;
+import com.jogamp.opengl.util.FPSAnimator;
+import com.jogamp.opengl.util.awt.TextRenderer;
+import com.jogamp.opengl.util.gl2.GLUT;
+import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureIO;
 
 public class VisualizationPanel extends GLJPanel implements GLEventListener {
     private Design design;
@@ -37,8 +57,10 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
     private Texture wallDecorTexture;
     private Point selectionStart = null;
     private Point selectionEnd = null;
+    private GLUT glut = new GLUT();
+    private boolean toggleGrid = false;
 
-    // -- end refactor
+    // -- end refactor    
 
     public VisualizationPanel(FurnitureDesignApp parent) {
         super(new GLCapabilities(GLProfile.get(GLProfile.GL2)));
@@ -139,8 +161,56 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
             else
                 drawRect(gl, x, z, 0f, w, d, 0f);
         }
+        // Add directional labels
+        gl.glMatrixMode(GL2.GL_PROJECTION);
+        gl.glPushMatrix();
+        gl.glLoadIdentity();
+        glu.gluOrtho2D(0, getWidth(), getHeight(), 0); // Note inverted Y-axis for text
+        gl.glMatrixMode(GL2.GL_MODELVIEW);
+        gl.glPushMatrix();
+        gl.glLoadIdentity();
+
+        Color labelColor = Color.WHITE;
+        int padding = 20;
+        
+        // Top label (North)
+        drawText(gl, "ROOM BACK", getWidth()/2 - 15, padding, labelColor);
+        
+        // Bottom label (South)
+        drawText(gl, "ROOM FRONT", getWidth()/2 - 25, getHeight() - padding, labelColor);
+        
+        // Left label (West)
+        drawText(gl, "LEFT", padding, getHeight()/2, labelColor);
+        
+        // Right label (East)
+        drawText(gl, "RIGHT", getWidth() - padding - 30, getHeight()/2, labelColor);
+
+        gl.glPopMatrix();
+        gl.glMatrixMode(GL2.GL_PROJECTION);
+        gl.glPopMatrix();
+        gl.glMatrixMode(GL2.GL_MODELVIEW);
+
 
         gl.glEnable(GL2.GL_DEPTH_TEST);
+    }
+
+    private void drawText(GL2 gl, String text, float x, float y, Color color) {
+        gl.glColor3f(color.getRed()/255f, color.getGreen()/255f, color.getBlue()/255f);
+        gl.glRasterPos2f(x, y);
+        
+        try {
+            Font font = new Font("Arial", Font.BOLD, 12);
+            TextRenderer textRenderer = new TextRenderer(font, true, true);
+            textRenderer.beginRendering(getWidth(), getHeight());
+            textRenderer.setColor(color);
+            textRenderer.draw(text, (int)x, (int)y);
+            textRenderer.endRendering();
+        } catch (Exception e) {
+            // Fallback if TextRenderer fails
+            for (char c : text.toCharArray()) {
+                glut.glutBitmapCharacter(GLUT.BITMAP_HELVETICA_12, c);
+            }
+        }
     }
 
     // 2D drawing for chair
@@ -314,6 +384,11 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         // Draw floor
         drawFloor(gl, room);
 
+        if (getToggleGrid()) {
+            toggleGrid(gl, room);
+        }
+        
+
         // Draw walls (4 walls to form a complete room)
         drawWalls(gl, room);
         
@@ -322,9 +397,6 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         
         // Disable lighting if you don't need it for other elements
         disableLighting(gl);
-
-
-        
 
 
         // Draw floor
@@ -406,20 +478,35 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         gl.glVertex3f(length, 0, width);
         gl.glVertex3f(0, 0, width);
         gl.glEnd();
+    }
+
+    public void setToggleGrid(boolean value) {
+        this.toggleGrid = value;
+    }
+    
+    public boolean getToggleGrid() {
+        return this.toggleGrid;
+    }
+    
+
+    private  void toggleGrid(GL2 gl, Room room){
+        setColor(gl, room.getFloorColor());
         
-        // // Optional: Add grid lines for better visibility
-        // setColor(gl, Color.DARK_GRAY);
-        // gl.glBegin(GL2.GL_LINES);
-        // float gridSize = 1.0f; // 1 meter grid
-        // for (float x = 0; x <= length; x += gridSize) {
-        //     gl.glVertex3f(x, 0.01f, 0);
-        //     gl.glVertex3f(x, 0.01f, width);
-        // }
-        // for (float z = 0; z <= width; z += gridSize) {
-        //     gl.glVertex3f(0, 0.01f, z);
-        //     gl.glVertex3f(length, 0.01f, z);
-        // }
-        // gl.glEnd();
+        float length = (float) room.getLength();
+        float width = (float) room.getWidth();
+        // Optional: Add grid lines for better visibility
+        setColor(gl, Color.DARK_GRAY);
+        gl.glBegin(GL2.GL_LINES);
+        float gridSize = 1.0f; // 1 meter grid
+        for (float x = 0; x <= length; x += gridSize) {
+            gl.glVertex3f(x, 0.01f, 0);
+            gl.glVertex3f(x, 0.01f, width);
+        }
+        for (float z = 0; z <= width; z += gridSize) {
+            gl.glVertex3f(0, 0.01f, z);
+            gl.glVertex3f(length, 0.01f, z);
+        }
+        gl.glEnd();
     }
 
     private void drawWalls(GL2 gl, Room room) {
@@ -1663,6 +1750,11 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         System.out.println("View mode set to: " + (is3DView ? "3D" : "2D"));
         repaint();
     }
+
+    public boolean get3DView() {
+        return this.is3DView;
+    }
+
 
     public void zoomIn() {
         zoomFactor *= 1.1f;
