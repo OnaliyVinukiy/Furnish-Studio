@@ -15,6 +15,7 @@ public class PropertiesPanel extends JPanel {
     private JComboBox<String> partCombo;
     private Furniture furniture;
     private String selectedPart;
+    private JSlider orientationSlider;
 
     // Colors and fonts
     private final Color BACKGROUND_COLOR = new Color(23, 23, 38);
@@ -123,6 +124,17 @@ public class PropertiesPanel extends JPanel {
         fieldsPanel.add(createPropertyField("Color", colorButton));
         fieldsPanel.add(Box.createRigidArea(new Dimension(0, VERTICAL_GAP)));
 
+        orientationSlider = new JSlider(0, 3, 0); // 0=North, 1=East, 2=South, 3=West
+        styleOrientationSlider(orientationSlider);
+        orientationSlider.addChangeListener(e -> {
+            if (furniture != null && !orientationSlider.getValueIsAdjusting()) {
+                furniture.setOrientation(Furniture.Orientation.values()[orientationSlider.getValue()]);
+                repaintParent();
+            }
+        });
+        fieldsPanel.add(createPropertyField("Orientation", orientationSlider));
+        fieldsPanel.add(Box.createRigidArea(new Dimension(0, VERTICAL_GAP)));
+
         // Shade slider
         shadeSlider = createStyledSlider(0, 100, 100);
         fieldsPanel.add(createPropertyField("Shade", shadeSlider));
@@ -154,6 +166,45 @@ public class PropertiesPanel extends JPanel {
 
         // Add listeners
         setupFieldListeners();
+    }
+
+    private void styleOrientationSlider(JSlider slider) {
+        slider.setOpaque(false);
+        slider.setForeground(TEXT_COLOR);
+        slider.setPaintTicks(true);
+        slider.setPaintLabels(true);
+        slider.setMajorTickSpacing(1);
+        slider.setSnapToTicks(true);
+        
+        Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
+        labelTable.put(0, new JLabel("North"));
+        labelTable.put(1, new JLabel("East"));
+        labelTable.put(2, new JLabel("South"));
+        labelTable.put(3, new JLabel("West"));
+        slider.setLabelTable(labelTable);
+        
+        slider.setUI(new javax.swing.plaf.basic.BasicSliderUI(slider) {
+            @Override
+            public void paintThumb(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setColor(HIGHLIGHT_COLOR);
+                g2d.fillOval(thumbRect.x, thumbRect.y, thumbRect.width, thumbRect.height);
+            }
+    
+            @Override
+            public void paintTrack(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                g2d.setColor(FIELD_BACKGROUND);
+                g2d.fillRoundRect(trackRect.x, trackRect.y + 5, trackRect.width, 5, 3, 3);
+                
+                int thumbPos = thumbRect.x + thumbRect.width / 2;
+                g2d.setColor(HIGHLIGHT_COLOR);
+                g2d.fillRoundRect(trackRect.x, trackRect.y + 5, thumbPos - trackRect.x, 5, 3, 3);
+            }
+        });
     }
 
     private JPanel createPropertyField(String labelText, JComponent component) {
@@ -405,19 +456,20 @@ public class PropertiesPanel extends JPanel {
             double width = Double.parseDouble(widthField.getText());
             double depth = Double.parseDouble(depthField.getText());
             double height = Double.parseDouble(heightField.getText());
-
+            
             if (width <= 0 || depth <= 0 || height <= 0) {
                 showError("All sizes must be positive.");
                 update(furniture);
                 return;
             }
-
+    
             furniture.setX(x);
             furniture.setZ(z);
             furniture.setWidth(width);
             furniture.setDepth(depth);
             furniture.setHeight(height);
-
+            furniture.setOrientation(Furniture.Orientation.values()[orientationSlider.getValue()]);
+    
             repaintParent();
         } catch (NumberFormatException ex) {
             showError("Invalid values detected. Please check your inputs.");
@@ -528,6 +580,7 @@ public class PropertiesPanel extends JPanel {
         depthField.setText("");
         heightField.setText("");
         shadeSlider.setValue(100);
+        orientationSlider.setValue(0); // Default to North
         colorButton.setBackground(FIELD_BACKGROUND);
         subtypeCombo.setSelectedItem(null);
         subtypeCombo.setEnabled(false);
@@ -543,6 +596,7 @@ public class PropertiesPanel extends JPanel {
         depthField.setText(String.format("%.1f", f.getDepth()));
         heightField.setText(String.format("%.1f", f.getHeight()));
         shadeSlider.setValue((int) (f.getShadeFactor() * 100));
+        orientationSlider.setValue(f.getOrientation().ordinal());
     }
 
     private void updatePartCombo() {

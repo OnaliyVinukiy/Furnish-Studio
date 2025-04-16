@@ -6,22 +6,39 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Furniture implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
+    public enum Orientation {
+        NORTH, EAST, SOUTH, WEST
+    }
+    
     private String type;
     private String subtype;
-    private double xPosition, zPosition;
-    private double width, depth, height;
+    private double xPosition;
+    private double zPosition;
+    private double width;
+    private double depth;
+    private double height;
     private Color color;
-    private float shadeFactor = 1.0f;
+    private Orientation orientation;
     private Map<String, Color> partColors;
     private boolean isSelected;
+    private float shadeFactor = 1.0f;
 
+    // Constructors
     public Furniture(String type, double xPosition, double zPosition,
             double width, double depth, double height, Color color) {
-        this(type, type.equals("Chair") ? "Standard" : "", xPosition, zPosition, width, depth, height, color);
+        this(type, type.equals("Chair") ? "Standard" : "", xPosition, zPosition, 
+             width, depth, height, color, Orientation.NORTH);
     }
 
     public Furniture(String type, String subtype, double xPosition, double zPosition,
             double width, double depth, double height, Color color) {
+        this(type, subtype, xPosition, zPosition, width, depth, height, color, Orientation.NORTH);
+    }
+
+    public Furniture(String type, String subtype, double xPosition, double zPosition,
+            double width, double depth, double height, Color color, Orientation orientation) {
         this.type = type;
         this.subtype = subtype != null ? subtype : "";
         this.xPosition = xPosition;
@@ -30,17 +47,17 @@ public class Furniture implements Serializable {
         this.depth = depth;
         this.height = height;
         this.color = color;
+        this.orientation = orientation;
         this.partColors = new HashMap<>();
         this.isSelected = false;
         initializePartColors();
     }
 
     private void initializePartColors() {
-
         if (type.equals("Chair")) {
             partColors.put("seat", color);
             partColors.put("backrest", color);
-            partColors.put("legs", new Color(70, 50, 30)); // Default leg color
+            partColors.put("legs", new Color(70, 50, 30));
             if (subtype.equals("Armchair")) {
                 partColors.put("arms", color.darker());
             }
@@ -60,13 +77,12 @@ public class Furniture implements Serializable {
             partColors.put("pillows", new Color(255, 255, 255));
             partColors.put("sheet", new Color(220, 230, 255));
             partColors.put("legs", new Color(70, 50, 30));
-        } else if (type.equals("Cabinet")) {
-            partColors.put("body", color);
         } else {
             partColors.put("body", color);
         }
     }
 
+    // Getters and Setters
     public String getType() {
         return type;
     }
@@ -84,20 +100,40 @@ public class Furniture implements Serializable {
         return xPosition;
     }
 
+    public void setX(double xPosition) {
+        this.xPosition = xPosition;
+    }
+
     public double getZ() {
         return zPosition;
+    }
+
+    public void setZ(double zPosition) {
+        this.zPosition = zPosition;
     }
 
     public double getWidth() {
         return width;
     }
 
+    public void setWidth(double width) {
+        this.width = width;
+    }
+
     public double getDepth() {
         return depth;
     }
 
+    public void setDepth(double depth) {
+        this.depth = depth;
+    }
+
     public double getHeight() {
         return height;
+    }
+
+    public void setHeight(double height) {
+        this.height = height;
     }
 
     public Color getColor() {
@@ -105,6 +141,11 @@ public class Furniture implements Serializable {
                 (int) (color.getRed() * shadeFactor),
                 (int) (color.getGreen() * shadeFactor),
                 (int) (color.getBlue() * shadeFactor));
+    }
+
+    public void setColor(Color color) {
+        this.color = color;
+        initializePartColors();
     }
 
     public Color getPartColor(String part) {
@@ -123,81 +164,20 @@ public class Furniture implements Serializable {
         return partColors;
     }
 
+    public Orientation getOrientation() {
+        return orientation;
+    }
+
+    public void setOrientation(Orientation orientation) {
+        this.orientation = orientation;
+    }
+
     public float getShadeFactor() {
         return shadeFactor;
     }
 
-    public void setX(double x) {
-        this.xPosition = x;
-    }
-
-    public void setZ(double z) {
-        this.zPosition = z;
-    }
-
-    public void setWidth(double width) {
-        this.width = width;
-    }
-
-    public void setDepth(double depth) {
-        this.depth = depth;
-    }
-
-    public void setHeight(double height) {
-        this.height = height;
-    }
-
-    public void setColor(Color color) {
-        this.color = color;
-        if (type.equals("Chair")) {
-            if (!partColors.containsKey("seat") || partColors.get("seat").equals(this.color)) {
-                partColors.put("seat", color);
-            }
-            if (!partColors.containsKey("backrest") || partColors.get("backrest").equals(this.color)) {
-                partColors.put("backrest", color);
-            }
-            if (subtype.equals("Armchair")
-                    && (!partColors.containsKey("arms") || partColors.get("arms").equals(this.color.darker()))) {
-                partColors.put("arms", color.darker());
-            }
-        } else if (type.equals("Table")) {
-            if (!partColors.containsKey("top") || partColors.get("top").equals(this.color)) {
-                partColors.put("top", color);
-            }
-            if (!partColors.containsKey("legs") || partColors.get("legs").equals(this.color.darker())) {
-                partColors.put("legs", color.darker());
-            }
-        } else if (type.equals("Sofa")) {
-            if (!partColors.containsKey("base") || partColors.get("base").equals(this.color)) {
-                partColors.put("base", color);
-            }
-            if (!partColors.containsKey("cushions") || partColors.get("cushions").equals(this.color.brighter())) {
-                partColors.put("cushions", color.brighter());
-            }
-            if (!partColors.containsKey("backrest") || partColors.get("backrest").equals(this.color)) {
-                partColors.put("backrest", color);
-            }
-            if (!partColors.containsKey("arms") || partColors.get("arms").equals(this.color.darker())) {
-                partColors.put("arms", color.darker());
-            }
-        } else if (type.equals("Bed")) {
-            if (!partColors.containsKey("frame") || partColors.get("frame").equals(this.color.darker())) {
-                partColors.put("frame", color.darker());
-            }
-            if (!partColors.containsKey("headboard") || partColors.get("headboard").equals(this.color.darker())) {
-                partColors.put("headboard", color.darker());
-            }
-        } else if (type.equals("Cabinet")) {
-            if (!partColors.containsKey("body") || partColors.get("body").equals(this.color)) {
-                partColors.put("body", color);
-            }
-        } else {
-            partColors.put("body", color);
-        }
-    }
-
-    public void setShadeFactor(float factor) {
-        this.shadeFactor = Math.max(0.1f, Math.min(1.0f, factor));
+    public void setShadeFactor(float shadeFactor) {
+        this.shadeFactor = Math.max(0.1f, Math.min(1.0f, shadeFactor));
     }
 
     public boolean isSelected() {
@@ -206,5 +186,22 @@ public class Furniture implements Serializable {
 
     public void setSelected(boolean selected) {
         this.isSelected = selected;
+    }
+
+    // Helper methods
+    public double getEffectiveWidth() {
+        return (orientation == Orientation.EAST || orientation == Orientation.WEST) ? depth : width;
+    }
+
+    public double getEffectiveDepth() {
+        return (orientation == Orientation.EAST || orientation == Orientation.WEST) ? width : depth;
+    }
+
+    @Override
+    public String toString() {
+        return type + (subtype.isEmpty() ? "" : " (" + subtype + ")") + 
+               " at (" + xPosition + ", " + zPosition + ") " +
+               "Size: " + width + "x" + depth + "x" + height +
+               " Facing: " + orientation;
     }
 }
