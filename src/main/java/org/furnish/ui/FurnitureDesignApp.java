@@ -719,21 +719,24 @@ public class FurnitureDesignApp extends JFrame {
         }
 
         // Ask for orientation
-        Object[] options = {"North", "East", "South", "West"};
-        int orientationChoice = JOptionPane.showOptionDialog(this,
-                "Select furniture orientation:",
-                "Furniture Orientation",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                options,
-                options[0]);
+        // Object[] options = {"North", "East", "South", "West"};
+        // int orientationChoice = JOptionPane.showOptionDialog(this,
+        //         "Select furniture orientation:",
+        //         "Furniture Orientation",
+        //         JOptionPane.DEFAULT_OPTION,
+        //         JOptionPane.QUESTION_MESSAGE,
+        //         null,
+        //         options,
+        //         options[0]);
         
-        if (orientationChoice == JOptionPane.CLOSED_OPTION) {
-            return; // User cancelled
-        }
+        // if (orientationChoice == JOptionPane.CLOSED_OPTION) {
+        //     return; // User cancelled
+        // }
         
-        Furniture.Orientation orientation = Furniture.Orientation.values()[orientationChoice];
+        // Furniture.Orientation orientation = Furniture.Orientation.values()[orientationChoice];
+        
+        Furniture.Orientation orientation = Furniture.Orientation.NORTH;
+
 
         Room room = currentDesign.getRoom();
         Color defaultColor;
