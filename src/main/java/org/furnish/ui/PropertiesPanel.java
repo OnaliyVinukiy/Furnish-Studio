@@ -5,6 +5,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.Hashtable;
 
 public class PropertiesPanel extends JPanel {
@@ -15,6 +16,7 @@ public class PropertiesPanel extends JPanel {
     private JComboBox<String> partCombo;
     private Furniture furniture;
     private String selectedPart;
+    private JSlider orientationSlider;
 
     // Colors and fonts
     private final Color BACKGROUND_COLOR = new Color(23, 23, 38);
@@ -123,6 +125,17 @@ public class PropertiesPanel extends JPanel {
         fieldsPanel.add(createPropertyField("Color", colorButton));
         fieldsPanel.add(Box.createRigidArea(new Dimension(0, VERTICAL_GAP)));
 
+        orientationSlider = new JSlider(0, 3, 0); 
+        styleOrientationSlider(orientationSlider);
+        orientationSlider.addChangeListener(e -> {
+            if (furniture != null && !orientationSlider.getValueIsAdjusting()) {
+                furniture.setOrientation(Furniture.Orientation.values()[orientationSlider.getValue()]);
+                repaintParent();
+            }
+        });
+        fieldsPanel.add(createPropertyField("Orientation", orientationSlider));
+        fieldsPanel.add(Box.createRigidArea(new Dimension(0, VERTICAL_GAP)));
+
         // Shade slider
         shadeSlider = createStyledSlider(0, 100, 100);
         fieldsPanel.add(createPropertyField("Shade", shadeSlider));
@@ -155,7 +168,52 @@ public class PropertiesPanel extends JPanel {
         // Add listeners
         setupFieldListeners();
     }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    private void styleOrientationSlider(JSlider slider) {
+        slider.setOpaque(false);
+        slider.setForeground(TEXT_COLOR);
+        slider.setPaintTicks(true);
+        slider.setPaintLabels(true);
+        slider.setMajorTickSpacing(1);
+        slider.setSnapToTicks(true);
+        
+        // Create combined horizontal labels with degrees first
+        Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
+        
+        // North (0°)
+        JLabel northLabel = new JLabel("0°");
+        styleSliderLabel(northLabel, Color.WHITE); 
+        
+        // East (90°)
+        JLabel eastLabel = new JLabel("90°");
+        styleSliderLabel(eastLabel, Color.WHITE); 
+        
+        // South (180°)
+        JLabel southLabel = new JLabel("180°");
+        styleSliderLabel(southLabel, Color.WHITE); 
+        
+        // West (270°)
+        JLabel westLabel = new JLabel("270°");
+        styleSliderLabel(westLabel, Color.WHITE); 
+        
+        labelTable.put(0, northLabel);
+        labelTable.put(1, eastLabel);
+        labelTable.put(2, southLabel);
+        labelTable.put(3, westLabel);
+        slider.setLabelTable(labelTable);
+        
+        // Rest of the slider UI code remains the same...
+    }
 
+    private void styleSliderLabel(JLabel label, Color color) {
+        label.setHorizontalAlignment(JLabel.CENTER);
+        label.setFont(new Font("Montserrat", Font.BOLD, 11));
+        label.setForeground(color);
+        label.setBorder(BorderFactory.createEmptyBorder(2, 2, 10, 2)); // Extra bottom padding
+    }
+        
+    
+    
     private JPanel createPropertyField(String labelText, JComponent component) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
@@ -405,19 +463,20 @@ public class PropertiesPanel extends JPanel {
             double width = Double.parseDouble(widthField.getText());
             double depth = Double.parseDouble(depthField.getText());
             double height = Double.parseDouble(heightField.getText());
-
+            
             if (width <= 0 || depth <= 0 || height <= 0) {
                 showError("All sizes must be positive.");
                 update(furniture);
                 return;
             }
-
+    
             furniture.setX(x);
             furniture.setZ(z);
             furniture.setWidth(width);
             furniture.setDepth(depth);
             furniture.setHeight(height);
-
+            furniture.setOrientation(Furniture.Orientation.values()[orientationSlider.getValue()]);
+    
             repaintParent();
         } catch (NumberFormatException ex) {
             showError("Invalid values detected. Please check your inputs.");
@@ -528,6 +587,7 @@ public class PropertiesPanel extends JPanel {
         depthField.setText("");
         heightField.setText("");
         shadeSlider.setValue(100);
+        orientationSlider.setValue(0); // Default to North
         colorButton.setBackground(FIELD_BACKGROUND);
         subtypeCombo.setSelectedItem(null);
         subtypeCombo.setEnabled(false);
@@ -543,6 +603,7 @@ public class PropertiesPanel extends JPanel {
         depthField.setText(String.format("%.1f", f.getDepth()));
         heightField.setText(String.format("%.1f", f.getHeight()));
         shadeSlider.setValue((int) (f.getShadeFactor() * 100));
+        orientationSlider.setValue(f.getOrientation().ordinal());
     }
 
     private void updatePartCombo() {

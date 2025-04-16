@@ -718,6 +718,26 @@ public class FurnitureDesignApp extends JFrame {
             return;
         }
 
+        // Ask for orientation
+        // Object[] options = {"North", "East", "South", "West"};
+        // int orientationChoice = JOptionPane.showOptionDialog(this,
+        //         "Select furniture orientation:",
+        //         "Furniture Orientation",
+        //         JOptionPane.DEFAULT_OPTION,
+        //         JOptionPane.QUESTION_MESSAGE,
+        //         null,
+        //         options,
+        //         options[0]);
+        
+        // if (orientationChoice == JOptionPane.CLOSED_OPTION) {
+        //     return; // User cancelled
+        // }
+        
+        // Furniture.Orientation orientation = Furniture.Orientation.values()[orientationChoice];
+        
+        Furniture.Orientation orientation = Furniture.Orientation.NORTH;
+
+
         Room room = currentDesign.getRoom();
         Color defaultColor;
         double width, depth, height;
@@ -748,27 +768,30 @@ public class FurnitureDesignApp extends JFrame {
         } else {
             defaultColor = type.equals("Table") ? new Color(150, 100, 50)
                     : type.equals("Sofa") ? new Color(120, 80, 180)
-                            : type.equals("Bed") ? new Color(100, 150, 100)
-                                    : type.equals("Cabinet") ? new Color(139, 69, 19)
-                                            : Color.GRAY;
+                    : type.equals("Bed") ? new Color(100, 150, 100)
+                    : type.equals("Cabinet") ? new Color(139, 69, 19)
+                    : Color.GRAY;
             width = type.equals("Table") ? 1.0 : type.equals("Sofa") ? 1.2 : type.equals("Bed") ? 1.5 : 0.8;
             depth = type.equals("Table") ? 0.8 : type.equals("Sofa") ? 0.6 : type.equals("Bed") ? 2.0 : 0.4;
             height = type.equals("Table") ? 0.7 : type.equals("Sofa") ? 0.6 : type.equals("Bed") ? 0.5 : 1.0;
             subtype = "";
         }
 
-        double x = (room.getLength() - width) / 2;
-        double z = (room.getWidth() - depth) / 2;
+        // Calculate position based on orientation
+        double x = (room.getLength() - (orientation == Furniture.Orientation.EAST || 
+                orientation == Furniture.Orientation.WEST ? depth : width)) / 2;
+        double z = (room.getWidth() - (orientation == Furniture.Orientation.EAST || 
+                orientation == Furniture.Orientation.WEST ? width : depth)) / 2;
 
-        Furniture f = new Furniture(type, subtype, x, z, width, depth, height, defaultColor);
+        Furniture f = new Furniture(type, subtype, x, z, width, depth, height, defaultColor, orientation);
         currentDesign.addFurniture(f);
         undoManager.addFurnitureEdit(currentDesign, f, true);
         setSelectedFurniture(f);
 
-        updateStatus("Added " + type + (subtype.isEmpty() ? "" : " " + subtype));
-
+        updateStatus("Added " + type + (subtype.isEmpty() ? "" : " " + subtype) + " facing " + orientation);
         repaint();
     }
+
 
     private void deleteSelectedFurniture() {
         if (currentDesign == null) {
