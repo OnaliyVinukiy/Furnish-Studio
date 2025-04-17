@@ -765,42 +765,44 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         double centerZ = room.getWidth() / 2.0;
         double furnitureCenterX = f.getX() + f.getWidth() / 2.0;
         double furnitureCenterZ = f.getZ() + f.getDepth() / 2.0;
-        
-        // Define a threshold for what's considered "centered"
+    
         double threshold = 20.5; // Half a meter from center
         return Math.abs(furnitureCenterX - centerX) < threshold && 
                Math.abs(furnitureCenterZ - centerZ) < threshold;
     }
-
+    
     private boolean isWithinRoomBounds(Furniture f, Room room) {
-        // Check if furniture is completely within the room's boundaries
         return f.getX() >= 0 && 
                f.getX() + f.getWidth() <= room.getLength() && 
                f.getZ() >= 0 && 
                f.getZ() + f.getDepth() <= room.getWidth();
     }
+    
     private boolean isAtOrigin(Furniture f) {
         return f.getX() == 0 && f.getZ() == 0;
     }
-    
 
+    private boolean isSpecialCaseFurniture(String type) {
+        return type.equals("Chair");
+    }
+    
+    
     private void drawFurniture(GL2 gl) {
         if (design == null) return;
     
-        Room room = design.getRoom();
-
         for (Furniture f : design.getFurnitureList()) {
-
-            if (is3DView && ((f.getType().equals("Chair") && isAtOrigin(f)) || 
-                (!f.getType().equals("Chair") && isCentered(f, room)))) {
+            String type = f.getType();
+    
+            boolean isSpecial = isSpecialCaseFurniture(type);
+            
+            if (is3DView && (
+                    (isSpecial && isAtOrigin(f)) ||
+                    (!isSpecial && isCentered(f, design.getRoom())))
+                ) {
                 continue;
             }
 
-            // if (is3DView && !isWithinRoomBounds(f, room)) {
-            //     continue;
-            // }
-            
-
+   
             gl.glPushMatrix();
             
             // Position the furniture
@@ -830,8 +832,10 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                 drawSofa3D(gl, f);
             } else if (f.getType().equals("Bed")) {
                 drawBed3D(gl, f);
+            } else if (f.getType().equals("Cabinet")) {
+                drawCabinet3D(gl, f);
             } else {
-                setColor(gl, f.getColor());
+                setColor(gl, f.getPartColor("body"));
                 drawBox(gl, 
                       -(float)f.getWidth()/2, 0, -(float)f.getDepth()/2,
                       (float)f.getWidth(), 
@@ -842,10 +846,144 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
             gl.glPopMatrix();
         }
     }
+
     
-    // end refactor --
-
-
+    private void drawCabinet3D(GL2 gl, Furniture f) {
+        float w = (float)f.getWidth();
+        float d = (float)f.getDepth();
+        float h = (float)f.getHeight();
+        String subtype = f.getSubtype() != null ? f.getSubtype() : "";
+    
+        System.out.println("Drawing cabinet: " + subtype + " w=" + w + " h=" + h + " d=" + d);
+    
+        // Enable depth testing
+        gl.glEnable(GL2.GL_DEPTH_TEST);
+        gl.glDepthFunc(GL2.GL_LEQUAL);
+        gl.glClear(GL2.GL_DEPTH_BUFFER_BIT);
+    
+        // Selection highlight
+        if (f.isSelected()) {
+            gl.glPushAttrib(GL2.GL_CURRENT_BIT);
+            gl.glColor3f(1.0f, 1.0f, 0.0f);
+            gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+            drawBox(gl, -w/2 - 0.05f, -0.05f, -d/2 - 0.05f, w + 0.1f, h + 0.1f, d + 0.1f);
+            gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+            gl.glPopAttrib();
+        }
+    
+        // Main body
+        gl.glPushMatrix();
+        setColor(gl, f.getPartColor("body"));
+        drawBox(gl, -w/2, 0, -d/2, w, h, d);
+        gl.glPopMatrix();
+    
+        // Draw subtype features
+        switch (subtype) {
+            case "Wardrobe":
+                drawWardrobe(gl, f, w, d, h);
+                break;
+            case "Bookshelf":
+                drawBookshelf(gl, f, w, d, h);
+                break;
+            case "Kitchen":
+                drawKitchenCabinet(gl, f, w, d, h);
+                break;
+            default:
+                drawDefaultCabinet(gl, f, w, d, h);
+        }
+    }
+    
+    private void drawWardrobe(GL2 gl, Furniture f, float w, float d, float h) {
+        gl.glPushMatrix();
+        // Wardrobe features - two doors with handles
+        setColor(gl, f.getPartColor("doors"));
+        drawBox(gl, -w/2 + 0.01f, h*0.1f, -d/2 + 0.01f, 
+               w*0.48f, h*0.8f, 0.02f); // Left door
+        drawBox(gl, w/2 - w*0.49f, h*0.1f, -d/2 + 0.01f, 
+               w*0.48f, h*0.8f, 0.02f); // Right door
+        
+        // Handles
+        setColor(gl, f.getPartColor("handles"));
+        float handleSize = Math.min(w, h) * 0.03f;
+        drawBox(gl, -w/2 + w*0.1f, h*0.5f, -d/2 + 0.03f, 
+               handleSize, handleSize*3, handleSize); // Left handle
+        drawBox(gl, w/2 - w*0.1f, h*0.5f, -d/2 + 0.03f, 
+               handleSize, handleSize*3, handleSize); // Right handle
+        gl.glPopMatrix();
+    }
+    
+    private void drawBookshelf(GL2 gl, Furniture f, float w, float d, float h) {
+        gl.glPushMatrix();
+        // Bookshelf features - open shelves
+        setColor(gl, f.getPartColor("shelves"));
+        int shelfCount = 5;
+        float shelfThickness = 0.02f;
+        
+        // Horizontal shelves
+        for (int i = 1; i < shelfCount; i++) {
+            float shelfY = h * (i/(float)shelfCount);
+            drawBox(gl, -w/2 + 0.01f, shelfY, -d/2 + 0.01f, 
+                   w - 0.02f, shelfThickness, d - 0.02f);
+        }
+        
+        // Vertical dividers
+        int dividerCount = 3;
+        for (int i = 1; i < dividerCount; i++) {
+            float dividerX = -w/2 + w * (i/(float)dividerCount);
+            drawBox(gl, dividerX - shelfThickness/2, 0, -d/2 + 0.01f,
+                   shelfThickness, h, d - 0.02f);
+        }
+        
+        // Back panel
+        setColor(gl, f.getPartColor("body").darker());
+        drawBox(gl, -w/2 + 0.01f, 0, d/2 - 0.01f, 
+               w - 0.02f, h, 0.02f);
+        gl.glPopMatrix();
+    }
+    
+    private void drawKitchenCabinet(GL2 gl, Furniture f, float w, float d, float h) {
+        gl.glPushMatrix();
+        // Kitchen cabinet features - single door with countertop
+        setColor(gl, f.getPartColor("doors"));
+        // Single door covering most of the front
+        drawBox(gl, -w/2 + 0.01f, h*0.1f, -d/2 + 0.01f, 
+               w - 0.02f, h*0.8f, 0.02f);
+        
+        // Handle
+        setColor(gl, f.getPartColor("handles"));
+        float kitchenHandleSize = Math.min(w, h) * 0.03f;
+        drawBox(gl, w/2 - w*0.1f, h*0.5f, -d/2 + 0.03f, 
+               kitchenHandleSize, kitchenHandleSize*3, kitchenHandleSize);
+        
+        // Countertop (stone-like appearance)
+        setColor(gl, new Color(200, 180, 150));
+        drawBox(gl, -w/2, h - 0.02f, -d/2, 
+               w, 0.04f, d);
+        
+        // Add some kitchen-specific details
+        setColor(gl, new Color(180, 180, 180));
+        // Draw some simulated appliances or fixtures
+        if (w > 0.6f) {
+            // Simulated oven or microwave
+            drawBox(gl, -w/2 + 0.1f, h*0.3f, -d/2 + 0.03f,
+                   0.2f, 0.3f, 0.01f);
+        }
+        gl.glPopMatrix();
+    }
+    
+    private void drawDefaultCabinet(GL2 gl, Furniture f, float w, float d, float h) {
+        gl.glPushMatrix();
+        // Default cabinet (single door)
+        setColor(gl, f.getPartColor("doors"));
+        drawBox(gl, -w/2 + 0.01f, h*0.1f, -d/2 + 0.01f, 
+               w - 0.02f, h*0.8f, 0.02f);
+        
+        setColor(gl, f.getPartColor("handles"));
+        float defaultHandleSize = Math.min(w, h) * 0.03f;
+        drawBox(gl, w/2 - w*0.1f, h*0.5f, -d/2 + 0.03f, 
+               defaultHandleSize, defaultHandleSize*3, defaultHandleSize);
+        gl.glPopMatrix();
+    }
 
     // 3D drawing for chair
     private void drawChair3D(GL2 gl, Furniture f) {
