@@ -1,12 +1,43 @@
 package org.furnish.ui;
 
-import org.furnish.core.Furniture;
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
-import java.awt.image.BufferedImage;
 import java.util.Hashtable;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JButton;
+import javax.swing.JColorChooser;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSlider;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+
+import org.furnish.core.Furniture;
 
 public class PropertiesPanel extends JPanel {
     private JTextField xField, zField, widthField, depthField, heightField;
@@ -168,7 +199,7 @@ public class PropertiesPanel extends JPanel {
         // Add listeners
         setupFieldListeners();
     }
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
     private void styleOrientationSlider(JSlider slider) {
         slider.setOpaque(false);
         slider.setForeground(TEXT_COLOR);
@@ -568,18 +599,45 @@ public class PropertiesPanel extends JPanel {
         } else {
             populateFields(f);
             colorButton.setBackground(f.getColor());
+            
+            // Set up subtype combo based on furniture type
+            subtypeCombo.setEnabled(true);
+            DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+            
             if (f.getType().equals("Chair")) {
-                subtypeCombo.setSelectedItem(f.getSubtype().isEmpty() ? "Standard" : f.getSubtype());
-                subtypeCombo.setEnabled(true);
-            } else {
-                subtypeCombo.setSelectedItem(null);
-                subtypeCombo.setEnabled(false);
+                model.addElement("Standard");
+                model.addElement("Armchair");
+                model.addElement("Dining");
+            } 
+            else if (f.getType().equals("Table")) {
+                model.addElement("Coffee");
+                model.addElement("Dining");
+                model.addElement("Desk");
+            } 
+            else if (f.getType().equals("Sofa")) {
+                model.addElement("2-Seater");
+                model.addElement("3-Seater");
+                model.addElement("Sectional");
+            } 
+            else if (f.getType().equals("Bed")) {
+                model.addElement("Single");
+                model.addElement("Double");
+                model.addElement("King");
+            } 
+            else if (f.getType().equals("Cabinet")) {
+                model.addElement("Bookshelf");
+                model.addElement("Wardrobe");
+                model.addElement("Kitchen");
             }
+            
+            subtypeCombo.setModel(model);
+            subtypeCombo.setSelectedItem(f.getSubtype().isEmpty() ? model.getElementAt(0) : f.getSubtype());
+            
             updatePartCombo();
             partCombo.setEnabled(true);
         }
     }
-
+    
     private void clearFields() {
         xField.setText("");
         zField.setText("");

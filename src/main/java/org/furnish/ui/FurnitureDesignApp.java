@@ -223,20 +223,50 @@ public class FurnitureDesignApp extends JFrame {
             visualizationPanel.zoomIn();
         }));
 
+        
         JMenu furnitureMenu = createStyledMenu("Furniture");
+
+        // Chair menu with subtypes
         JMenu chairMenu = createStyledMenu("Add Chair");
         addMenuItems(chairMenu,
                 createStyledMenuItem("Standard Chair", "../images/close.png", e -> addFurniture("Chair", "Standard")),
                 createStyledMenuItem("Armchair", "../images/close.png", e -> addFurniture("Chair", "Armchair")),
                 createStyledMenuItem("Dining Chair", "../images/close.png", e -> addFurniture("Chair", "Dining")));
 
-        addMenuItems(furnitureMenu,
+        // Add Table menu with subtypes
+        JMenu tableMenu = createStyledMenu("Add Table");
+        addMenuItems(tableMenu,
+                createStyledMenuItem("Coffee Table", "/images/box.png", e -> addFurniture("Table", "Coffee")),
+                createStyledMenuItem("Dining Table", "/images/box.png", e -> addFurniture("Table", "Dining")),
+                createStyledMenuItem("Desk", "/images/box.png", e -> addFurniture("Table", "Desk")));
 
+        // Add Sofa menu with subtypes
+        JMenu sofaMenu = createStyledMenu("Add Sofa");
+        addMenuItems(sofaMenu,
+                createStyledMenuItem("2-Seater", "/images/box.png", e -> addFurniture("Sofa", "2-Seater")),
+                createStyledMenuItem("3-Seater", "/images/box.png", e -> addFurniture("Sofa", "3-Seater")),
+                createStyledMenuItem("Sectional", "/images/box.png", e -> addFurniture("Sofa", "Sectional")));
+
+        // Add Bed menu with subtypes
+        JMenu bedMenu = createStyledMenu("Add Bed");
+        addMenuItems(bedMenu,
+                createStyledMenuItem("Single", "/images/box.png", e -> addFurniture("Bed", "Single")),
+                createStyledMenuItem("Double", "/images/box.png", e -> addFurniture("Bed", "Double")),
+                createStyledMenuItem("King", "/images/box.png", e -> addFurniture("Bed", "King")));
+
+        // Add Cabinet menu with subtypes
+        JMenu cabinetMenu = createStyledMenu("Add Cabinet");
+        addMenuItems(cabinetMenu,
+                createStyledMenuItem("Bookshelf", "/images/box.png", e -> addFurniture("Cabinet", "Bookshelf")),
+                createStyledMenuItem("Wardrobe", "/images/box.png", e -> addFurniture("Cabinet", "Wardrobe")),
+                createStyledMenuItem("Kitchen", "/images/box.png", e -> addFurniture("Cabinet", "Kitchen")));
+
+        addMenuItems(furnitureMenu,
                 chairMenu,
-                createStyledMenuItem("Add Table", "/images/box.png", e -> addFurniture("Table", "")),
-                createStyledMenuItem("Add Sofa", "/images/box.png", e -> addFurniture("Sofa", "")),
-                createStyledMenuItem("Add Cabinet", "/images/box.png", e -> addFurniture("Cabinet", "")),
-                createStyledMenuItem("Add Bed", "/images/box.png", e -> addFurniture("Bed", "")));
+                tableMenu,
+                sofaMenu,
+                bedMenu,
+                cabinetMenu);
 
 
         // Create the close button with perfect circular shape
@@ -313,8 +343,16 @@ public class FurnitureDesignApp extends JFrame {
     }
 
     private JMenu createStyledMenu(String text) {
-        JMenu menu = new JMenu(text);
+        JMenu menu = new JMenu(text) {
+            @Override
+            public JPopupMenu getPopupMenu() {
+                JPopupMenu popupMenu = super.getPopupMenu();
+                popupMenu.setBackground(new Color(60, 60, 90));
+                return popupMenu;
+            }
+        };
         menu.setForeground(Color.WHITE);
+        menu.setBackground(new Color(60, 60, 90));
         menu.setFont(new Font("Montserrat", Font.PLAIN, 14));
         menu.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         return menu;
@@ -717,31 +755,12 @@ public class FurnitureDesignApp extends JFrame {
             showErrorDialog("Please create a room design first before adding furniture.");
             return;
         }
-
-        // Ask for orientation
-        // Object[] options = {"North", "East", "South", "West"};
-        // int orientationChoice = JOptionPane.showOptionDialog(this,
-        //         "Select furniture orientation:",
-        //         "Furniture Orientation",
-        //         JOptionPane.DEFAULT_OPTION,
-        //         JOptionPane.QUESTION_MESSAGE,
-        //         null,
-        //         options,
-        //         options[0]);
-        
-        // if (orientationChoice == JOptionPane.CLOSED_OPTION) {
-        //     return; // User cancelled
-        // }
-        
-        // Furniture.Orientation orientation = Furniture.Orientation.values()[orientationChoice];
-        
-        Furniture.Orientation orientation = Furniture.Orientation.NORTH;
-
-
+    
         Room room = currentDesign.getRoom();
         Color defaultColor;
         double width, depth, height;
-
+        Furniture.Orientation orientation = Furniture.Orientation.NORTH;
+    
         if (type.equals("Chair")) {
             switch (subtype) {
                 case "Standard":
@@ -765,33 +784,136 @@ public class FurnitureDesignApp extends JFrame {
                 default:
                     throw new IllegalArgumentException("Unknown chair subtype: " + subtype);
             }
-        } else {
-            defaultColor = type.equals("Table") ? new Color(150, 100, 50)
-                    : type.equals("Sofa") ? new Color(120, 80, 180)
-                    : type.equals("Bed") ? new Color(100, 150, 100)
-                    : type.equals("Cabinet") ? new Color(139, 69, 19)
-                    : Color.GRAY;
-            width = type.equals("Table") ? 1.0 : type.equals("Sofa") ? 1.2 : type.equals("Bed") ? 1.5 : 0.8;
-            depth = type.equals("Table") ? 0.8 : type.equals("Sofa") ? 0.6 : type.equals("Bed") ? 2.0 : 0.4;
-            height = type.equals("Table") ? 0.7 : type.equals("Sofa") ? 0.6 : type.equals("Bed") ? 0.5 : 1.0;
-            subtype = "";
+        } 
+        else if (type.equals("Table")) {
+            switch (subtype) {
+                case "Coffee":
+                    defaultColor = new Color(150, 100, 50);
+                    width = 1.0;
+                    depth = 0.8;
+                    height = 0.4;
+                    break;
+                case "Dining":
+                    defaultColor = new Color(160, 110, 60);
+                    width = 1.5;
+                    depth = 0.9;
+                    height = 0.7;
+                    break;
+                case "Desk":
+                    defaultColor = new Color(140, 90, 40);
+                    width = 1.2;
+                    depth = 0.6;
+                    height = 0.75;
+                    break;
+                default:
+                    defaultColor = new Color(150, 100, 50);
+                    width = 1.0;
+                    depth = 0.8;
+                    height = 0.7;
+            }
+        } 
+        else if (type.equals("Sofa")) {
+            switch (subtype) {
+                case "2-Seater":
+                    defaultColor = new Color(120, 80, 180);
+                    width = 1.4;
+                    depth = 0.7;
+                    height = 0.8;
+                    break;
+                case "3-Seater":
+                    defaultColor = new Color(130, 90, 190);
+                    width = 2.0;
+                    depth = 0.8;
+                    height = 0.85;
+                    break;
+                case "Sectional":
+                    defaultColor = new Color(110, 70, 170);
+                    width = 2.5;
+                    depth = 1.0;
+                    height = 0.9;
+                    break;
+                default:
+                    defaultColor = new Color(120, 80, 180);
+                    width = 1.8;
+                    depth = 0.8;
+                    height = 0.8;
+            }
+        } 
+        else if (type.equals("Bed")) {
+            switch (subtype) {
+                case "Single":
+                    defaultColor = new Color(100, 150, 100);
+                    width = 0.9;
+                    depth = 2.0;
+                    height = 0.5;
+                    break;
+                case "Double":
+                    defaultColor = new Color(110, 160, 110);
+                    width = 1.4;
+                    depth = 2.0;
+                    height = 0.5;
+                    break;
+                case "King":
+                    defaultColor = new Color(120, 170, 120);
+                    width = 1.8;
+                    depth = 2.0;
+                    height = 0.5;
+                    break;
+                default:
+                    defaultColor = new Color(100, 150, 100);
+                    width = 1.5;
+                    depth = 2.0;
+                    height = 0.5;
+            }
+        } 
+        else if (type.equals("Cabinet")) {
+            switch (subtype) {
+                case "Bookshelf":
+                    defaultColor = new Color(139, 69, 19);
+                    width = 0.8;
+                    depth = 0.3;
+                    height = 1.8;
+                    break;
+                case "Wardrobe":
+                    defaultColor = new Color(149, 79, 29);
+                    width = 1.2;
+                    depth = 0.6;
+                    height = 1.8;
+                    break;
+                case "Kitchen":
+                    defaultColor = new Color(159, 89, 39);
+                    width = 0.6;
+                    depth = 0.5;
+                    height = 0.9;
+                    break;
+                default:
+                    defaultColor = new Color(139, 69, 19);
+                    width = 0.8;
+                    depth = 0.4;
+                    height = 1.0;
+            }
+        } 
+        else {
+            defaultColor = Color.GRAY;
+            width = 1.0;
+            depth = 1.0;
+            height = 1.0;
         }
-
+    
         // Calculate position based on orientation
         double x = (room.getLength() - (orientation == Furniture.Orientation.EAST || 
                 orientation == Furniture.Orientation.WEST ? depth : width)) / 2;
         double z = (room.getWidth() - (orientation == Furniture.Orientation.EAST || 
                 orientation == Furniture.Orientation.WEST ? width : depth)) / 2;
-
+    
         Furniture f = new Furniture(type, subtype, x, z, width, depth, height, defaultColor, orientation);
         currentDesign.addFurniture(f);
         undoManager.addFurnitureEdit(currentDesign, f, true);
         setSelectedFurniture(f);
-
+    
         updateStatus("Added " + type + (subtype.isEmpty() ? "" : " " + subtype) + " facing " + orientation);
         repaint();
     }
-
 
     private void deleteSelectedFurniture() {
         if (currentDesign == null) {

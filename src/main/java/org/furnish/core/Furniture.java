@@ -54,6 +54,8 @@ public class Furniture implements Serializable {
     }
 
     private void initializePartColors() {
+        partColors = new HashMap<>();
+        
         if (type.equals("Chair")) {
             partColors.put("seat", color);
             partColors.put("backrest", color);
@@ -61,23 +63,42 @@ public class Furniture implements Serializable {
             if (subtype.equals("Armchair")) {
                 partColors.put("arms", color.darker());
             }
-        } else if (type.equals("Table")) {
+        } 
+        else if (type.equals("Table")) {
             partColors.put("top", color);
             partColors.put("legs", color.darker());
-        } else if (type.equals("Sofa")) {
+            partColors.put("shelves", color.brighter());
+            if (subtype.equals("Coffee")) {
+                partColors.put("glass", new Color(200, 230, 255, 150));
+            }
+        } 
+        else if (type.equals("Sofa")) {
             partColors.put("base", color);
             partColors.put("cushions", color.brighter());
             partColors.put("backrest", color);
             partColors.put("arms", color.darker());
             partColors.put("legs", new Color(70, 50, 30));
-        } else if (type.equals("Bed")) {
+        } 
+        else if (type.equals("Bed")) {
             partColors.put("frame", color.darker());
             partColors.put("mattress", new Color(240, 240, 250));
             partColors.put("headboard", color.darker());
             partColors.put("pillows", new Color(255, 255, 255));
             partColors.put("sheet", new Color(220, 230, 255));
             partColors.put("legs", new Color(70, 50, 30));
-        } else {
+            if (subtype.equals("King")) {
+                partColors.put("footboard", color.darker());
+            }
+        } 
+        else if (type.equals("Cabinet")) {
+            partColors.put("body", color);
+            partColors.put("doors", color.darker());
+            partColors.put("handles", new Color(200, 200, 200));
+            if (subtype.equals("Bookshelf")) {
+                partColors.put("shelves", color.brighter());
+            }
+        } 
+        else {
             partColors.put("body", color);
         }
     }
