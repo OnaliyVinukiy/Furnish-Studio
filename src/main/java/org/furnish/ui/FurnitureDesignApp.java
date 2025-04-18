@@ -68,14 +68,11 @@ public class FurnitureDesignApp extends JFrame {
     private static final double MIN_ZOOM = 0.5;
     private static final double MAX_ZOOM = 3.0;
 
-    // refactor
     private final FurnitureUndoManager undoManager = new FurnitureUndoManager();
     private JButton undoButton;
     private JButton redoButton;
     private JButton deleteButton;
     private JButton gridButton;
-
-    //-- refactor
 
     public FurnitureDesignApp() {
         initializeModernUI();
@@ -213,15 +210,15 @@ public class FurnitureDesignApp extends JFrame {
 
         JMenu viewMenu = createStyledMenu("View");
         addMenuItems(viewMenu,
-        createStyledMenuItem("Zoom In", "/images/zoom-in.png", e -> visualizationPanel.zoomIn()),
-        createStyledMenuItem("Zoom Out", "/images/magnifying-glass.png", e -> visualizationPanel.zoomOut()),
-        new JSeparator(),
-        createStyledMenuItem("Reset View", "/images/reset.png", e -> {
-            visualizationPanel.resetView();
-            visualizationPanel.zoomIn();
-            visualizationPanel.zoomIn();
-            visualizationPanel.zoomIn();
-        }));
+                createStyledMenuItem("Zoom In", "/images/zoom-in.png", e -> visualizationPanel.zoomIn()),
+                createStyledMenuItem("Zoom Out", "/images/magnifying-glass.png", e -> visualizationPanel.zoomOut()),
+                new JSeparator(),
+                createStyledMenuItem("Reset View", "/images/reset.png", e -> {
+                    visualizationPanel.resetView();
+                    visualizationPanel.zoomIn();
+                    visualizationPanel.zoomIn();
+                    visualizationPanel.zoomIn();
+                }));
 
         JMenu furnitureMenu = createStyledMenu("Furniture");
         JMenu chairMenu = createStyledMenu("Add Chair");
@@ -238,7 +235,6 @@ public class FurnitureDesignApp extends JFrame {
                 createStyledMenuItem("Add Cabinet", "/images/box.png", e -> addFurniture("Cabinet", "")),
                 createStyledMenuItem("Add Bed", "/images/box.png", e -> addFurniture("Bed", "")));
 
-
         // Create the close button with perfect circular shape
         JButton closeButton = new JButton("×") {
             @Override
@@ -249,14 +245,14 @@ public class FurnitureDesignApp extends JFrame {
                 g2.setColor(getBackground());
                 g2.fillOval(0, 0, getWidth(), getHeight());
                 g2.dispose();
-                
+
                 // Then paint the text centered
                 super.paintComponent(g);
             }
 
             @Override
             public Dimension getPreferredSize() {
-                return new Dimension(32, 32); // MUST be square for perfect circle
+                return new Dimension(32, 32);
             }
 
             @Override
@@ -428,13 +424,12 @@ public class FurnitureDesignApp extends JFrame {
         view2D3DToggle = new JToggleButton("3D View", loadResizedIcon("/images/3d.png", 20, 20));
         styleToolbarButton(view2D3DToggle);
 
-
         view2D3DToggle.addActionListener(e -> {
             boolean is3D = view2D3DToggle.isSelected();
 
             if (is3D) {
                 gridButton.setEnabled(true);
-            }else{
+            } else {
                 gridButton.setEnabled(false);
             }
 
@@ -446,7 +441,7 @@ public class FurnitureDesignApp extends JFrame {
             view2D3DToggle.setText(newText);
             view2D3DToggle.setIcon(loadResizedIcon(newIconPath, 20, 20));
 
-            if(is3D) {
+            if (is3D) {
                 visualizationPanel.zoomIn();
                 visualizationPanel.zoomIn();
                 visualizationPanel.zoomIn();
@@ -480,21 +475,21 @@ public class FurnitureDesignApp extends JFrame {
 
         // Redo Button
         redoButton = createToolbarButton("Redo", "/images/forward.png");
-        redoButton.addActionListener(e -> performRedo()); 
+        redoButton.addActionListener(e -> performRedo());
         redoButton.setEnabled(false);
         redoButton.setToolTipText("Redo last action");
         toolBar.add(redoButton);
 
         // Delete Button
         deleteButton = createToolbarButton("Delete", "/images/delete.png");
-        deleteButton.addActionListener(e -> deleteSelectedFurniture()); 
+        deleteButton.addActionListener(e -> deleteSelectedFurniture());
         deleteButton.setEnabled(true);
         deleteButton.setToolTipText("Delete selected furniture item");
         deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         toolBar.add(deleteButton);
 
         this.visualizationPanel = new VisualizationPanel(this);
-        
+
         gridButton = createToolbarButton("Grid", "/images/pixels.png");
         gridButton.addActionListener(e -> {
             boolean updatedState = !visualizationPanel.getToggleGrid();
@@ -503,15 +498,12 @@ public class FurnitureDesignApp extends JFrame {
         gridButton.setToolTipText("Toggle 3D View Grid Visibility");
         gridButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         toolBar.add(gridButton);
-        
-        
+
         // Setup listener for undo/redo state changes
         undoManager.addUndoableEditListener(e -> updateUndoRedoButtons());
 
         getContentPane().add(toolBar, BorderLayout.NORTH);
     }
-
-    // refactor --
 
     private void performUndo() {
         if (undoManager.canUndo()) {
@@ -533,8 +525,6 @@ public class FurnitureDesignApp extends JFrame {
             redoButton.setEnabled(true);
         });
     }
-
-    // -- refactor
 
     private JButton createToolbarButton(String tooltip, String iconPath) {
         JButton button = new JButton();
@@ -855,5 +845,5 @@ public class FurnitureDesignApp extends JFrame {
             timer.start();
         });
     }
-    
+
 }
