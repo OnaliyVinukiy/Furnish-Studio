@@ -218,6 +218,12 @@ public class FurnitureDesignApp extends JFrame {
                     visualizationPanel.zoomIn();
                     visualizationPanel.zoomIn();
                 }));
+        JMenu profileMenu = createStyledMenu("Profile");
+        addMenuItems(profileMenu,
+                createStyledMenuItem("View Profile", "/images/user.png", e -> {
+                    new ProfileScreen().setVisible(true);
+                    FurnitureDesignApp.this.dispose();
+                }));
 
         JMenu furnitureMenu = createStyledMenu("Furniture");
 
@@ -328,6 +334,7 @@ public class FurnitureDesignApp extends JFrame {
         menuBar.add(editMenu);
         menuBar.add(viewMenu);
         menuBar.add(furnitureMenu);
+        menuBar.add(profileMenu);
 
         // Add glue to push the button to the right
         menuBar.add(Box.createHorizontalGlue());
