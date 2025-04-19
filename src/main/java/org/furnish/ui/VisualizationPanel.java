@@ -20,10 +20,12 @@ import org.furnish.core.Design;
 import org.furnish.core.Furniture;
 import org.furnish.core.Room;
 
+import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLCapabilities;
+import com.jogamp.opengl.GLContext;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLException;
 import com.jogamp.opengl.GLProfile;
@@ -56,6 +58,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
     private Point selectionEnd = null;
     private GLUT glut = new GLUT();
     private boolean toggleGrid = false;
+    private Furniture persistentlySelectedFurniture;
 
     public VisualizationPanel(FurnitureDesignApp parent) {
         super(new GLCapabilities(GLProfile.get(GLProfile.GL2)));
@@ -1765,6 +1768,8 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
             partPickMap.put(baseId, "body");
             drawBox(gl, x, 0, z, w, h, d);
         }
+        System.out.println("Assigning picking ID: " + baseId + " to " + f.getType());
+
     }
 
     private void setPickColor(GL2 gl, int id) {
@@ -1788,8 +1793,8 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
                 if (design != null) {
                     if (is3DView) {
-                        // Handle 3D picking
-                        pickFurnitureAt(e.getX(), e.getY());
+                        // Handle 3D picking on click
+                        pickFurnitureAt(e.getX(), e.getY(), true);
                     } else {
                         // 2D selection logic
                         Room room = design.getRoom();
@@ -1804,6 +1809,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                         float roomCenterX = (float) (room.getLength() / 2) * scale;
                         float roomCenterY = (float) (room.getWidth() / 2) * scale;
 
+                        Furniture clickedFurniture = null;
                         for (Furniture f : design.getFurnitureList()) {
                             float x = (float) f.getX() * scale - roomCenterX + panelCenterX;
                             float z = (float) f.getZ() * scale - roomCenterY + panelCenterY;
@@ -1814,32 +1820,38 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
 
                             if (e.getX() >= x && e.getX() <= x + w &&
                                     e.getY() >= z && e.getY() <= z + adjustedD) {
+                                clickedFurniture = f;
                                 draggedFurniture = f;
                                 dragOffset = new Point(e.getX(), e.getY());
-                                parent.setSelectedFurniture(f);
-                                f.setSelected(true);
-                                for (Furniture other : design.getFurnitureList()) {
-                                    if (other != f)
-                                        other.setSelected(false);
-                                }
-                                System.out.println(
-                                        "Selected " + f.getType() + " at (" + f.getX() + ", " + f.getZ() + ")");
                                 break;
                             }
                         }
 
-                        if (draggedFurniture == null) {
-                            System.out.println("No furniture selected at (" + e.getX() + ", " + e.getY() + ")");
+                        if (clickedFurniture != null) {
+                            // Select the clicked furniture
+                            selectedFurniture = clickedFurniture;
+                            persistentlySelectedFurniture = clickedFurniture;
+                            parent.setSelectedFurniture(clickedFurniture);
+                            clickedFurniture.setSelected(true);
+                            for (Furniture other : design.getFurnitureList()) {
+                                if (other != clickedFurniture) {
+                                    other.setSelected(false);
+                                }
+                            }
+                            System.out.println(
+                                    "Selected " + clickedFurniture.getType() + " at (" + clickedFurniture.getX() + ", "
+                                            + clickedFurniture.getZ() + ")");
+                        } else {
+
+                            selectedFurniture = null;
+                            persistentlySelectedFurniture = null;
                             parent.setSelectedFurniture(null);
                             for (Furniture f : design.getFurnitureList()) {
                                 f.setSelected(false);
                             }
-                            // Initialize selection rectangle
                             selectionStart = new Point(e.getX(), e.getY());
                             selectionEnd = selectionStart;
-                        } else {
-                            System.out.println(
-                                    "Drag offset initialized to: (" + dragOffset.x + ", " + dragOffset.y + ")");
+                            System.out.println("No furniture selected at (" + e.getX() + ", " + e.getY() + ")");
                         }
                     }
                 }
@@ -1850,13 +1862,9 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
             public void mouseReleased(MouseEvent e) {
                 if (!is3DView) {
                     if (selectionStart != null) {
-                        // Handle selection completion
+
                         if (selectionStart.equals(selectionEnd)) {
-                            // Click without drag - clear selection
-                            parent.setSelectedFurniture(null);
-                            for (Furniture f : design.getFurnitureList()) {
-                                f.setSelected(false);
-                            }
+
                         }
                         selectionStart = null;
                         selectionEnd = null;
@@ -1878,68 +1886,38 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
-                if (design != null && !is3DView) {
-                    float scale = Math.min(getWidth() / (float) design.getRoom().getLength(),
-                            getHeight() / (float) design.getRoom().getWidth()) * 0.8f;
-                    boolean overFurniture = false;
-                    for (Furniture f : design.getFurnitureList()) {
-                        float x = (float) (f.getX() - design.getRoom().getLength() / 2) * scale;
-                        float z = (float) (f.getZ() - design.getRoom().getWidth() / 2) * scale;
-                        float w = (float) f.getWidth() * scale;
-                        float d = (float) f.getDepth() * scale;
 
-                        float panelCenterX = getWidth() / 2f;
-                        float panelCenterY = getHeight() / 2f;
-                        x += panelCenterX;
-                        z += panelCenterY;
+                boolean overFurniture = false;
+                if (design != null) {
+                    if (is3DView) {
 
-                        float adjustedD = f.getType().equals("Sofa") ? d : d;
+                        overFurniture = pickFurnitureAt(e.getX(), e.getY(), false);
+                    } else {
 
-                        if (e.getX() >= x && e.getX() <= x + w && e.getY() >= z && e.getY() <= z + adjustedD) {
-                            overFurniture = true;
-                            break;
+                        float scale = Math.min(getWidth() / (float) design.getRoom().getLength(),
+                                getHeight() / (float) design.getRoom().getWidth()) * 0.8f;
+                        for (Furniture f : design.getFurnitureList()) {
+                            float x = (float) (f.getX() - design.getRoom().getLength() / 2) * scale;
+                            float z = (float) (f.getZ() - design.getRoom().getWidth() / 2) * scale;
+                            float w = (float) f.getWidth() * scale;
+                            float d = (float) f.getDepth() * scale;
+
+                            float panelCenterX = getWidth() / 2f;
+                            float panelCenterY = getHeight() / 2f;
+                            x += panelCenterX;
+                            z += panelCenterY;
+
+                            float adjustedD = f.getType().equals("Sofa") ? d : d;
+
+                            if (e.getX() >= x && e.getX() <= x + w && e.getY() >= z && e.getY() <= z + adjustedD) {
+                                overFurniture = true;
+                                break;
+                            }
                         }
                     }
-                    setCursor(
-                            overFurniture ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
                 }
+                setCursor(overFurniture ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
             }
-
-            // @Override
-            // public void mouseDragged(MouseEvent e) {
-            // if (is3DView && draggedFurniture == null) {
-            // double deltaX = e.getX() - lastMouseX;
-            // double deltaY = e.getY() - lastMouseY;
-            // rotationY += deltaX * 0.5f;
-            // rotationX += deltaY * 0.5f;
-            // repaint();
-            // } else if (!is3DView && draggedFurniture != null) {
-            // Room room = design.getRoom();
-            // float scale = Math.min(getWidth() / (float) room.getLength(),
-            // getHeight() / (float) room.getWidth()) * 0.8f;
-
-            // double deltaX = e.getX() - dragOffset.x;
-            // double deltaY = e.getY() - dragOffset.y;
-            // double newX = draggedFurniture.getX() + deltaX / scale;
-            // double newZ = draggedFurniture.getZ() + deltaY / scale;
-
-            // newX = Math.max(0, Math.min(newX, room.getLength() -
-            // draggedFurniture.getWidth()));
-            // newZ = Math.max(0, Math.min(newZ, room.getWidth() -
-            // draggedFurniture.getDepth()));
-
-            // draggedFurniture.setX(newX);
-            // draggedFurniture.setZ(newZ);
-            // parent.propertiesPanel.update(draggedFurniture);
-            // System.out.println("Dragging " + draggedFurniture.getType() + " to (" + newX
-            // + ", " + newZ + ")");
-
-            // dragOffset = new Point(e.getX(), e.getY());
-            // repaint();
-            // }
-            // lastMouseX = e.getX();
-            // lastMouseY = e.getY();
-            // }
 
             @Override
             public void mouseDragged(MouseEvent e) {
@@ -1951,20 +1929,17 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                     rotationX += deltaY * 0.5f;
                 } else if (!is3DView) {
                     if (draggedFurniture != null && design != null) {
-                        // 2D furniture dragging with updated movement
+                        // 2D furniture dragging
                         Room room = design.getRoom();
                         float scale = Math.min(getWidth() / (float) room.getLength(),
                                 getHeight() / (float) room.getWidth()) * 0.8f;
 
-                        // Calculate movement deltas (with Y inversion)
                         double deltaX = e.getX() - dragOffset.getX();
                         double deltaY = dragOffset.getY() - e.getY(); // Inverted Y movement
 
-                        // Calculate new position
                         double newX = draggedFurniture.getX() + deltaX / scale;
                         double newZ = draggedFurniture.getZ() + deltaY / scale;
 
-                        // Adjust boundaries based on orientation
                         double effectiveWidth = (draggedFurniture.getOrientation() == Furniture.Orientation.EAST ||
                                 draggedFurniture.getOrientation() == Furniture.Orientation.WEST)
                                         ? draggedFurniture.getDepth()
@@ -1981,12 +1956,10 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                         draggedFurniture.setX(newX);
                         draggedFurniture.setZ(newZ);
 
-                        // Update UI
                         parent.propertiesPanel.update(draggedFurniture);
                         System.out
                                 .println("Dragging " + draggedFurniture.getType() + " to (" + newX + ", " + newZ + ")");
 
-                        // Update dragOffset for continuous dragging
                         dragOffset = new Point(e.getX(), e.getY());
                     } else if (selectionStart != null) {
                         // Update selection rectangle
@@ -1994,12 +1967,10 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                     }
                 }
 
-                // Update last mouse position
                 lastMouseX = e.getX();
                 lastMouseY = e.getY();
                 repaint();
             }
-
         });
 
         addFocusListener(new FocusListener() {
@@ -2015,101 +1986,130 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         });
     }
 
-    private void pickFurnitureAt(int x, int y) {
-        GL2 gl = getGL().getGL2();
-
-        // Initialize picking maps
-        pickMap = new HashMap<>();
-        partPickMap = new HashMap<>();
-        int pickingId = 1;
-
-        // Set up selection buffer
-        IntBuffer selectBuffer = IntBuffer.allocate(512);
-        gl.glSelectBuffer(512, selectBuffer);
-
-        // Enter selection mode
-        gl.glRenderMode(GL2.GL_SELECT);
-
-        // Initialize name stack
-        gl.glInitNames();
-        gl.glPushName(0);
-
-        // Set up picking matrix
-        IntBuffer viewport = IntBuffer.allocate(4);
-        gl.glGetIntegerv(GL2.GL_VIEWPORT, viewport);
-        gl.glMatrixMode(GL2.GL_PROJECTION);
-        gl.glPushMatrix();
-        gl.glLoadIdentity();
-        glu.gluPickMatrix(x, getHeight() - y, 5.0, 5.0, viewport);
-        float aspect = (float) getWidth() / getHeight();
-        gl.glFrustum(-aspect, aspect, -1.0, 1.0, 5.0, 60.0);
-
-        gl.glMatrixMode(GL2.GL_MODELVIEW);
-        gl.glLoadIdentity();
-        gl.glTranslatef(0.0f, 0.0f, -10.0f * zoomFactor);
-        gl.glRotatef(rotationX, 1.0f, 0.0f, 0.0f);
-        gl.glRotatef(rotationY, 0.0f, 1.0f, 0.0f);
-
-        // Draw furniture for picking
-        if (design != null) {
-            for (Furniture f : design.getFurnitureList()) {
-                pickMap.put(pickingId, f);
-                gl.glLoadName(pickingId);
-                drawFurnitureForPicking(gl, f, pickingId);
-                pickingId += 5;
-            }
+    private boolean pickFurnitureAt(int x, int y, boolean isClick) {
+        GLAutoDrawable drawable = this;
+        boolean madeCurrent = drawable.getContext().makeCurrent() != GLContext.CONTEXT_NOT_CURRENT;
+        if (!madeCurrent) {
+            System.err.println("Failed to make OpenGL context current");
+            return false;
         }
+        try {
+            GL2 gl = drawable.getGL().getGL2();
 
-        // Restore matrices
-        gl.glMatrixMode(GL2.GL_PROJECTION);
-        gl.glPopMatrix();
-        gl.glMatrixMode(GL2.GL_MODELVIEW);
+            // Initialize picking maps
+            pickMap = new HashMap<>();
+            partPickMap = new HashMap<>();
+            int pickingId = 1;
 
-        // Exit selection mode and get hits
-        int hits = gl.glRenderMode(GL2.GL_RENDER);
-        System.out.println("Picking hits: " + hits + " at (" + x + ", " + y + ")");
+            IntBuffer selectBuffer = Buffers.newDirectIntBuffer(512);
+            gl.glSelectBuffer(512, selectBuffer);
 
-        // Process hits
-        int selectedId = 0;
-        float minZ = Float.MAX_VALUE;
-        int bufferIndex = 0;
+            // Enter selection mode
+            gl.glRenderMode(GL2.GL_SELECT);
+            gl.glInitNames();
+            gl.glPushName(0);
 
-        for (int i = 0; i < hits; i++) {
-            int nameCount = selectBuffer.get(bufferIndex);
-            float z1 = (float) selectBuffer.get(bufferIndex + 1) / 0x7fffffff;
-            bufferIndex += 3;
-            for (int j = 0; j < nameCount; j++) {
-                int id = selectBuffer.get(bufferIndex + j);
-                if (z1 < minZ) {
-                    minZ = z1;
-                    selectedId = id;
+            // Set up picking matrix
+            IntBuffer viewport = IntBuffer.allocate(4);
+            gl.glGetIntegerv(GL2.GL_VIEWPORT, viewport);
+            gl.glMatrixMode(GL2.GL_PROJECTION);
+            gl.glPushMatrix();
+            gl.glLoadIdentity();
+            glu.gluPickMatrix(x, getHeight() - y, 5.0, 5.0, viewport);
+            float aspect = (float) getWidth() / getHeight();
+            gl.glFrustum(-aspect, aspect, -1.0, 1.0, 5.0, 60.0);
+
+            gl.glMatrixMode(GL2.GL_MODELVIEW);
+            gl.glLoadIdentity();
+            gl.glTranslatef(0.0f, 0.0f, -10.0f * zoomFactor);
+            gl.glRotatef(rotationX, 1.0f, 0.0f, 0.0f);
+            gl.glRotatef(rotationY, 0.0f, 1.0f, 0.0f);
+
+            // Draw furniture for picking
+            if (design != null) {
+                for (Furniture f : design.getFurnitureList()) {
+                    pickMap.put(pickingId, f);
+                    gl.glLoadName(pickingId);
+                    drawFurnitureForPicking(gl, f, pickingId);
+                    pickingId += 5;
                 }
             }
-            bufferIndex += nameCount;
-        }
 
-        // Select furniture and part
-        selectedFurniture = pickMap.get(selectedId);
-        selectedPart = partPickMap.get(selectedId);
+            // Restore matrices
+            gl.glMatrixMode(GL2.GL_PROJECTION);
+            gl.glPopMatrix();
+            gl.glMatrixMode(GL2.GL_MODELVIEW);
 
-        if (selectedFurniture != null) {
-            System.out.println("Selected furniture: " + selectedFurniture.getType() + ", part: " + selectedPart);
-            for (Furniture f : design.getFurnitureList()) {
-                f.setSelected(f == selectedFurniture);
+            // Exit selection mode and get hits
+            int hits = gl.glRenderMode(GL2.GL_RENDER);
+            System.out.println("Picking hits: " + hits + " at (" + x + ", " + y + ")");
+
+            // Process hits
+            int selectedId = 0;
+            float minZ = Float.MAX_VALUE;
+            int bufferIndex = 0;
+
+            for (int i = 0; i < hits; i++) {
+                int nameCount = selectBuffer.get(bufferIndex);
+                float z1 = (float) selectBuffer.get(bufferIndex + 1) / 0x7fffffff;
+                bufferIndex += 3;
+                for (int j = 0; j < nameCount; j++) {
+                    int id = selectBuffer.get(bufferIndex + j);
+                    if (z1 < minZ) {
+                        minZ = z1;
+                        selectedId = id;
+                    }
+                }
+                bufferIndex += nameCount;
             }
-            parent.setSelectedFurniture(selectedFurniture);
-            parent.propertiesPanel.setSelectedPart(selectedPart);
-        } else {
-            System.out.println("No furniture selected at (" + x + ", " + y + ")");
-            for (Furniture f : design.getFurnitureList()) {
-                f.setSelected(false);
-            }
-            parent.setSelectedFurniture(null);
-            parent.propertiesPanel.setSelectedPart(null);
-        }
 
-        gl.glFlush();
-        repaint();
+            // Get furniture and part
+            Furniture newlySelectedFurniture = pickMap.get(selectedId);
+            String newlySelectedPart = partPickMap.get(selectedId);
+
+            boolean overFurniture = newlySelectedFurniture != null;
+
+            if (isClick) {
+                if (newlySelectedFurniture != null) {
+                    System.out.println(
+                            "Clicked furniture: " + newlySelectedFurniture.getType() + ", part: " + newlySelectedPart);
+                    selectedFurniture = newlySelectedFurniture;
+                    persistentlySelectedFurniture = newlySelectedFurniture;
+                    selectedPart = newlySelectedPart;
+                    for (Furniture f : design.getFurnitureList()) {
+                        f.setSelected(f == newlySelectedFurniture);
+                    }
+                    parent.setSelectedFurniture(newlySelectedFurniture);
+                    parent.propertiesPanel.setSelectedPart(newlySelectedPart);
+                } else {
+                    selectedFurniture = null;
+                    persistentlySelectedFurniture = null;
+                    selectedPart = null;
+                    for (Furniture f : design.getFurnitureList()) {
+                        f.setSelected(false);
+                    }
+                    parent.setSelectedFurniture(null);
+                    parent.propertiesPanel.setSelectedPart(null);
+                }
+            } else {
+
+                selectedFurniture = persistentlySelectedFurniture;
+                for (Furniture f : design.getFurnitureList()) {
+                    f.setSelected(f == persistentlySelectedFurniture);
+                }
+                parent.setSelectedFurniture(persistentlySelectedFurniture);
+                if (persistentlySelectedFurniture != null) {
+                    parent.propertiesPanel.setSelectedPart(selectedPart);
+                } else {
+                    parent.propertiesPanel.setSelectedPart(null);
+                }
+            }
+
+            gl.glFlush();
+            return overFurniture;
+        } finally {
+            drawable.getContext().release();
+        }
     }
 
     public void setDesign(Design design) {

@@ -67,15 +67,11 @@ public class FurnitureDesignApp extends JFrame {
     private static final double ZOOM_STEP = 0.1;
     private static final double MIN_ZOOM = 0.5;
     private static final double MAX_ZOOM = 3.0;
-
-    // refactor
     private final FurnitureUndoManager undoManager = new FurnitureUndoManager();
     private JButton undoButton;
     private JButton redoButton;
     private JButton deleteButton;
     private JButton gridButton;
-
-    //-- refactor
 
     public FurnitureDesignApp() {
         initializeModernUI();
@@ -213,25 +209,24 @@ public class FurnitureDesignApp extends JFrame {
 
         JMenu viewMenu = createStyledMenu("View");
         addMenuItems(viewMenu,
-        createStyledMenuItem("Zoom In", "/images/zoom-in.png", e -> visualizationPanel.zoomIn()),
-        createStyledMenuItem("Zoom Out", "/images/magnifying-glass.png", e -> visualizationPanel.zoomOut()),
-        new JSeparator(),
-        createStyledMenuItem("Reset View", "/images/reset.png", e -> {
-            visualizationPanel.resetView();
-            visualizationPanel.zoomIn();
-            visualizationPanel.zoomIn();
-            visualizationPanel.zoomIn();
-        }));
+                createStyledMenuItem("Zoom In", "/images/zoom-in.png", e -> visualizationPanel.zoomIn()),
+                createStyledMenuItem("Zoom Out", "/images/magnifying-glass.png", e -> visualizationPanel.zoomOut()),
+                new JSeparator(),
+                createStyledMenuItem("Reset View", "/images/reset.png", e -> {
+                    visualizationPanel.resetView();
+                    visualizationPanel.zoomIn();
+                    visualizationPanel.zoomIn();
+                    visualizationPanel.zoomIn();
+                }));
 
-        
         JMenu furnitureMenu = createStyledMenu("Furniture");
 
         // Chair menu with subtypes
         JMenu chairMenu = createStyledMenu("Add Chair");
         addMenuItems(chairMenu,
-                createStyledMenuItem("Standard Chair", "../images/close.png", e -> addFurniture("Chair", "Standard")),
-                createStyledMenuItem("Armchair", "../images/close.png", e -> addFurniture("Chair", "Armchair")),
-                createStyledMenuItem("Dining Chair", "../images/close.png", e -> addFurniture("Chair", "Dining")));
+                createStyledMenuItem("Standard Chair", "/images/close.png", e -> addFurniture("Chair", "Standard")),
+                createStyledMenuItem("Armchair", "/images/close.png", e -> addFurniture("Chair", "Armchair")),
+                createStyledMenuItem("Dining Chair", "/images/close.png", e -> addFurniture("Chair", "Dining")));
 
         // Add Table menu with subtypes
         JMenu tableMenu = createStyledMenu("Add Table");
@@ -268,7 +263,6 @@ public class FurnitureDesignApp extends JFrame {
                 bedMenu,
                 cabinetMenu);
 
-
         // Create the close button with perfect circular shape
         JButton closeButton = new JButton("×") {
             @Override
@@ -279,7 +273,7 @@ public class FurnitureDesignApp extends JFrame {
                 g2.setColor(getBackground());
                 g2.fillOval(0, 0, getWidth(), getHeight());
                 g2.dispose();
-                
+
                 // Then paint the text centered
                 super.paintComponent(g);
             }
@@ -452,11 +446,11 @@ public class FurnitureDesignApp extends JFrame {
         });
         toolBar.add(chairButton);
 
-        JButton tableButton = createToolbarButton("Table", "../images/close.png");
+        JButton tableButton = createToolbarButton("Table", "/images/close.png");
         tableButton.addActionListener(e -> addFurniture("Table", ""));
         toolBar.add(tableButton);
 
-        JButton sofaButton = createToolbarButton("Sofa", "../images/close.png");
+        JButton sofaButton = createToolbarButton("Sofa", "/images/close.png");
         sofaButton.addActionListener(e -> addFurniture("Sofa", ""));
 
         toolBar.add(sofaButton);
@@ -466,13 +460,12 @@ public class FurnitureDesignApp extends JFrame {
         view2D3DToggle = new JToggleButton("3D View", loadResizedIcon("/images/3d.png", 20, 20));
         styleToolbarButton(view2D3DToggle);
 
-
         view2D3DToggle.addActionListener(e -> {
             boolean is3D = view2D3DToggle.isSelected();
 
             if (is3D) {
                 gridButton.setEnabled(true);
-            }else{
+            } else {
                 gridButton.setEnabled(false);
             }
 
@@ -484,7 +477,7 @@ public class FurnitureDesignApp extends JFrame {
             view2D3DToggle.setText(newText);
             view2D3DToggle.setIcon(loadResizedIcon(newIconPath, 20, 20));
 
-            if(is3D) {
+            if (is3D) {
                 visualizationPanel.zoomIn();
                 visualizationPanel.zoomIn();
                 visualizationPanel.zoomIn();
@@ -518,21 +511,21 @@ public class FurnitureDesignApp extends JFrame {
 
         // Redo Button
         redoButton = createToolbarButton("Redo", "/images/forward.png");
-        redoButton.addActionListener(e -> performRedo()); 
+        redoButton.addActionListener(e -> performRedo());
         redoButton.setEnabled(false);
         redoButton.setToolTipText("Redo last action");
         toolBar.add(redoButton);
 
         // Delete Button
         deleteButton = createToolbarButton("Delete", "/images/delete.png");
-        deleteButton.addActionListener(e -> deleteSelectedFurniture()); 
+        deleteButton.addActionListener(e -> deleteSelectedFurniture());
         deleteButton.setEnabled(true);
         deleteButton.setToolTipText("Delete selected furniture item");
         deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         toolBar.add(deleteButton);
 
         this.visualizationPanel = new VisualizationPanel(this);
-        
+
         gridButton = createToolbarButton("Grid", "/images/pixels.png");
         gridButton.addActionListener(e -> {
             boolean updatedState = !visualizationPanel.getToggleGrid();
@@ -541,8 +534,7 @@ public class FurnitureDesignApp extends JFrame {
         gridButton.setToolTipText("Toggle 3D View Grid Visibility");
         gridButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         toolBar.add(gridButton);
-        
-        
+
         // Setup listener for undo/redo state changes
         undoManager.addUndoableEditListener(e -> updateUndoRedoButtons());
 
@@ -755,12 +747,12 @@ public class FurnitureDesignApp extends JFrame {
             showErrorDialog("Please create a room design first before adding furniture.");
             return;
         }
-    
+
         Room room = currentDesign.getRoom();
         Color defaultColor;
         double width, depth, height;
         Furniture.Orientation orientation = Furniture.Orientation.NORTH;
-    
+
         if (type.equals("Chair")) {
             switch (subtype) {
                 case "Standard":
@@ -784,8 +776,7 @@ public class FurnitureDesignApp extends JFrame {
                 default:
                     throw new IllegalArgumentException("Unknown chair subtype: " + subtype);
             }
-        } 
-        else if (type.equals("Table")) {
+        } else if (type.equals("Table")) {
             switch (subtype) {
                 case "Coffee":
                     defaultColor = new Color(150, 100, 50);
@@ -811,8 +802,7 @@ public class FurnitureDesignApp extends JFrame {
                     depth = 0.8;
                     height = 0.7;
             }
-        } 
-        else if (type.equals("Sofa")) {
+        } else if (type.equals("Sofa")) {
             switch (subtype) {
                 case "2-Seater":
                     defaultColor = new Color(120, 80, 180);
@@ -838,8 +828,7 @@ public class FurnitureDesignApp extends JFrame {
                     depth = 0.8;
                     height = 0.8;
             }
-        } 
-        else if (type.equals("Bed")) {
+        } else if (type.equals("Bed")) {
             switch (subtype) {
                 case "Single":
                     defaultColor = new Color(100, 150, 100);
@@ -865,8 +854,7 @@ public class FurnitureDesignApp extends JFrame {
                     depth = 2.0;
                     height = 0.5;
             }
-        } 
-        else if (type.equals("Cabinet")) {
+        } else if (type.equals("Cabinet")) {
             switch (subtype) {
                 case "Bookshelf":
                     defaultColor = new Color(139, 69, 19);
@@ -892,25 +880,24 @@ public class FurnitureDesignApp extends JFrame {
                     depth = 0.4;
                     height = 1.0;
             }
-        } 
-        else {
+        } else {
             defaultColor = Color.GRAY;
             width = 1.0;
             depth = 1.0;
             height = 1.0;
         }
-    
+
         // Calculate position based on orientation
-        double x = (room.getLength() - (orientation == Furniture.Orientation.EAST || 
+        double x = (room.getLength() - (orientation == Furniture.Orientation.EAST ||
                 orientation == Furniture.Orientation.WEST ? depth : width)) / 2;
-        double z = (room.getWidth() - (orientation == Furniture.Orientation.EAST || 
+        double z = (room.getWidth() - (orientation == Furniture.Orientation.EAST ||
                 orientation == Furniture.Orientation.WEST ? width : depth)) / 2;
-    
+
         Furniture f = new Furniture(type, subtype, x, z, width, depth, height, defaultColor, orientation);
         currentDesign.addFurniture(f);
         undoManager.addFurnitureEdit(currentDesign, f, true);
         setSelectedFurniture(f);
-    
+
         updateStatus("Added " + type + (subtype.isEmpty() ? "" : " " + subtype) + " facing " + orientation);
         repaint();
     }
@@ -1000,5 +987,5 @@ public class FurnitureDesignApp extends JFrame {
             timer.start();
         });
     }
-    
+
 }
