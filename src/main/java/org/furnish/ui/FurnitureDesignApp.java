@@ -19,33 +19,42 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
-import java.io.File;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.URL;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.imageio.ImageIO;
 import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
+import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JSplitPane;
 import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.UIManager;
@@ -55,6 +64,15 @@ import org.furnish.core.Furniture;
 import org.furnish.core.Room;
 import org.furnish.models.FurnitureUndoManager;
 import org.furnish.utils.CloseButtonUtil;
+import org.furnish.utils.FirebaseUtil;
+import org.json.JSONObject;
+
+import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.cloud.firestore.QuerySnapshot;
+import com.google.cloud.firestore.WriteResult;
 
 public class FurnitureDesignApp extends JFrame {
     private VisualizationPanel visualizationPanel;
@@ -195,7 +213,7 @@ public class FurnitureDesignApp extends JFrame {
 
         addMenuItems(fileMenu,
                 createStyledMenuItem("New Design", "/images/add.png", e -> newDesign()),
-                createStyledMenuItem("Open Design", "/images/share.png", e -> openDesign()),
+                createStyledMenuItem("Open Design", "/images/share.png", e -> showSavedDesigns()),
                 createStyledMenuItem("Save Design", "/images/diskette.png", e -> saveDesign()),
                 new JSeparator(),
                 createStyledMenuItem("Exit", "/images/exit.png", e -> dispose()));
@@ -218,6 +236,7 @@ public class FurnitureDesignApp extends JFrame {
                     visualizationPanel.zoomIn();
                     visualizationPanel.zoomIn();
                 }));
+
         JMenu profileMenu = createStyledMenu("Profile");
         addMenuItems(profileMenu,
                 createStyledMenuItem("View Profile", "/images/user.png", e -> {
@@ -273,20 +292,17 @@ public class FurnitureDesignApp extends JFrame {
         JButton closeButton = new JButton("×") {
             @Override
             protected void paintComponent(Graphics g) {
-                // First paint the background circle
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getBackground());
                 g2.fillOval(0, 0, getWidth(), getHeight());
                 g2.dispose();
-
-                // Then paint the text centered
                 super.paintComponent(g);
             }
 
             @Override
             public Dimension getPreferredSize() {
-                return new Dimension(32, 32); // MUST be square for perfect circle
+                return new Dimension(32, 32);
             }
 
             @Override
@@ -300,7 +316,6 @@ public class FurnitureDesignApp extends JFrame {
             }
         };
 
-        // Basic styling
         closeButton.setFocusPainted(false);
         closeButton.setContentAreaFilled(false);
         closeButton.setOpaque(false);
@@ -308,12 +323,9 @@ public class FurnitureDesignApp extends JFrame {
         closeButton.setForeground(Color.WHITE);
         closeButton.setFont(new Font("Arial", Font.BOLD, 16));
         closeButton.setBorder(BorderFactory.createEmptyBorder());
-
-        // Perfect text centering
         closeButton.setHorizontalTextPosition(JButton.CENTER);
         closeButton.setVerticalTextPosition(JButton.CENTER);
 
-        // Hover effects
         closeButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -335,8 +347,6 @@ public class FurnitureDesignApp extends JFrame {
         menuBar.add(viewMenu);
         menuBar.add(furnitureMenu);
         menuBar.add(profileMenu);
-
-        // Add glue to push the button to the right
         menuBar.add(Box.createHorizontalGlue());
         menuBar.add(closeButton);
 
@@ -371,7 +381,6 @@ public class FurnitureDesignApp extends JFrame {
             java.net.URL imageUrl = getClass().getResource(iconPath);
             if (imageUrl != null) {
                 BufferedImage originalImage = ImageIO.read(imageUrl);
-                // menu item image size
                 Image resizedImage = originalImage.getScaledInstance(13, 13, Image.SCALE_SMOOTH);
                 item.setIcon(new ImageIcon(resizedImage));
             } else {
@@ -422,7 +431,7 @@ public class FurnitureDesignApp extends JFrame {
         toolBar.add(newButton);
 
         JButton openButton = createToolbarButton("Open", "/images/share.png");
-        openButton.addActionListener(e -> openDesign());
+        openButton.addActionListener(e -> showSavedDesigns());
         toolBar.add(openButton);
 
         JButton saveButton = createToolbarButton("Save", "/images/diskette.png");
@@ -464,7 +473,6 @@ public class FurnitureDesignApp extends JFrame {
                 visualizationPanel.zoomIn();
                 visualizationPanel.zoomIn();
             }
-
         });
 
         toolBar.add(view2D3DToggle);
@@ -477,29 +485,24 @@ public class FurnitureDesignApp extends JFrame {
         zoomOutButton.addActionListener(e -> visualizationPanel.zoomOut());
         toolBar.add(zoomOutButton);
 
-        // Undo Button
         undoButton = createToolbarButton("Undo", "/images/undo.png");
         undoButton.addActionListener(e -> performUndo());
         undoButton.setEnabled(false);
         undoButton.setToolTipText("Undo last action");
         toolBar.add(undoButton);
 
-        // Redo Button
         redoButton = createToolbarButton("Redo", "/images/forward.png");
         redoButton.addActionListener(e -> performRedo());
         redoButton.setEnabled(false);
         redoButton.setToolTipText("Redo last action");
         toolBar.add(redoButton);
 
-        // Delete Button
         deleteButton = createToolbarButton("Delete", "/images/delete.png");
         deleteButton.addActionListener(e -> deleteSelectedFurniture());
         deleteButton.setEnabled(true);
         deleteButton.setToolTipText("Delete selected furniture item");
         deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         toolBar.add(deleteButton);
-
-        this.visualizationPanel = new VisualizationPanel(this);
 
         gridButton = createToolbarButton("Grid", "/images/pixels.png");
         gridButton.addActionListener(e -> {
@@ -510,13 +513,10 @@ public class FurnitureDesignApp extends JFrame {
         gridButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         toolBar.add(gridButton);
 
-        // Setup listener for undo/redo state changes
         undoManager.addUndoableEditListener(e -> updateUndoRedoButtons());
 
         getContentPane().add(toolBar, BorderLayout.NORTH);
     }
-
-    // refactor --
 
     private void performUndo() {
         if (undoManager.canUndo()) {
@@ -538,8 +538,6 @@ public class FurnitureDesignApp extends JFrame {
             redoButton.setEnabled(true);
         });
     }
-
-    // -- refactor
 
     private JButton createToolbarButton(String tooltip, String iconPath) {
         JButton button = new JButton();
@@ -582,7 +580,6 @@ public class FurnitureDesignApp extends JFrame {
             @Override
             public void mouseExited(MouseEvent e) {
                 if (button instanceof JToggleButton && ((JToggleButton) button).isSelected()) {
-
                     button.setBackground(new Color(40, 40, 70));
                 } else {
                     button.setBackground(new Color(60, 60, 90));
@@ -590,7 +587,6 @@ public class FurnitureDesignApp extends JFrame {
             }
         });
 
-        // Update background when toggled
         if (button instanceof JToggleButton) {
             ((JToggleButton) button).addItemListener(e -> {
                 boolean selected = ((JToggleButton) button).isSelected();
@@ -678,23 +674,161 @@ public class FurnitureDesignApp extends JFrame {
             return;
         }
 
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Save Design");
-        fileChooser.setSelectedFile(new File("design.furnish"));
+        JSONObject currentUser = FirebaseUtil.getCurrentUser();
+        if (currentUser == null) {
+            showErrorDialog("You must be logged in to save a design.");
+            return;
+        }
 
-        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            File file = fileChooser.getSelectedFile();
-            if (!file.getName().toLowerCase().endsWith(".furnish")) {
-                file = new File(file.getParentFile(), file.getName() + ".furnish");
+        String userId = currentUser.getString("uid");
+        String designName = JOptionPane.showInputDialog(this, "Enter a name for your design:");
+        if (designName == null || designName.trim().isEmpty()) {
+            showErrorDialog("Design name cannot be empty.");
+            return;
+        }
+
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeObject(currentDesign);
+            oos.close();
+            byte[] designData = baos.toByteArray();
+
+            String designDataStr = Base64.getEncoder().encodeToString(designData);
+
+            Map<String, Object> designMap = new HashMap<>();
+            designMap.put("name", designName);
+            designMap.put("designData", designDataStr);
+            designMap.put("createdAt", System.currentTimeMillis());
+            designMap.put("userId", userId);
+
+            DocumentReference docRef = FirebaseUtil.firestore.collection("designs").document();
+            ApiFuture<WriteResult> future = docRef.set(designMap);
+            WriteResult result = future.get();
+            updateStatus("Design '" + designName + "' saved at " + result.getUpdateTime());
+        } catch (Exception ex) {
+            showErrorDialog("Error saving design: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+
+    private void showSavedDesigns() {
+        JSONObject currentUser = FirebaseUtil.getCurrentUser();
+        if (currentUser == null) {
+            showErrorDialog("You must be logged in to view saved designs.");
+            return;
+        }
+
+        String userId = currentUser.getString("uid");
+
+        try {
+            ApiFuture<QuerySnapshot> future = FirebaseUtil.firestore.collection("designs")
+                    .whereEqualTo("userId", userId)
+                    .get();
+            List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+
+            if (documents.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No saved designs found.", "Saved Designs",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
             }
 
-            try (ObjectOutputStream oos = new ObjectOutputStream(
-                    new FileOutputStream(file))) {
-                oos.writeObject(currentDesign);
-                updateStatus("Design saved to: " + file.getAbsolutePath());
-            } catch (IOException ex) {
-                showErrorDialog("Error saving design: " + ex.getMessage());
+            JDialog designsDialog = new JDialog(this, "Saved Designs", true);
+            designsDialog.setLayout(new BorderLayout());
+
+            DefaultListModel<String> listModel = new DefaultListModel<>();
+            Map<String, String> designIdMap = new HashMap<>();
+            for (QueryDocumentSnapshot doc : documents) {
+                String designName = doc.getString("name");
+                String docId = doc.getId();
+                listModel.addElement(designName);
+                designIdMap.put(designName, docId);
             }
+
+            JList<String> designsList = new JList<>(listModel);
+            designsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            JScrollPane scrollPane = new JScrollPane(designsList);
+            designsDialog.add(scrollPane, BorderLayout.CENTER);
+
+            JPanel buttonPanel = new JPanel();
+            JButton loadButton = new JButton("Load");
+            JButton deleteButton = new JButton("Delete");
+            JButton cancelButton = new JButton("Cancel");
+
+            loadButton.addActionListener(e -> {
+                String selectedDesignName = designsList.getSelectedValue();
+                if (selectedDesignName != null) {
+                    String designId = designIdMap.get(selectedDesignName);
+                    loadDesign(designId);
+                    designsDialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(designsDialog, "Please select a design to load.");
+                }
+            });
+
+            deleteButton.addActionListener(e -> {
+                String selectedDesignName = designsList.getSelectedValue();
+                if (selectedDesignName != null) {
+                    int confirm = JOptionPane.showConfirmDialog(designsDialog,
+                            "Are you sure you want to delete '" + selectedDesignName + "'?",
+                            "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                    if (confirm == JOptionPane.YES_OPTION) {
+                        String designId = designIdMap.get(selectedDesignName);
+                        try {
+                            FirebaseUtil.firestore.collection("designs").document(designId).delete().get();
+                            listModel.removeElement(selectedDesignName);
+                            designIdMap.remove(selectedDesignName);
+                            JOptionPane.showMessageDialog(designsDialog, "Design deleted successfully.");
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(designsDialog, "Error deleting design: " + ex.getMessage());
+                        }
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(designsDialog, "Please select a design to delete.");
+                }
+            });
+
+            cancelButton.addActionListener(e -> designsDialog.dispose());
+
+            buttonPanel.add(loadButton);
+            buttonPanel.add(deleteButton);
+            buttonPanel.add(cancelButton);
+            designsDialog.add(buttonPanel, BorderLayout.SOUTH);
+
+            designsDialog.setSize(400, 300);
+            designsDialog.setLocationRelativeTo(this);
+            designsDialog.setVisible(true);
+        } catch (Exception ex) {
+            showErrorDialog("Error retrieving saved designs: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+
+    private void loadDesign(String designId) {
+        try {
+            DocumentReference docRef = FirebaseUtil.firestore.collection("designs").document(designId);
+            ApiFuture<DocumentSnapshot> future = docRef.get();
+            DocumentSnapshot document = future.get();
+
+            if (document.exists()) {
+                String designDataStr = document.getString("designData");
+                byte[] designData = Base64.getDecoder().decode(designDataStr);
+
+                ByteArrayInputStream bais = new ByteArrayInputStream(designData);
+                ObjectInputStream ois = new ObjectInputStream(bais);
+                Design loadedDesign = (Design) ois.readObject();
+                ois.close();
+
+                currentDesign = loadedDesign;
+                visualizationPanel.setDesign(currentDesign);
+                updateStatus("Loaded design: " + document.getString("name"));
+                repaint();
+            } else {
+                showErrorDialog("Design not found.");
+            }
+        } catch (Exception ex) {
+            showErrorDialog("Error loading design: " + ex.getMessage());
+            ex.printStackTrace();
         }
     }
 
@@ -862,7 +996,6 @@ public class FurnitureDesignApp extends JFrame {
             height = 1.0;
         }
 
-        // Calculate position based on orientation
         double x = (room.getLength() - (orientation == Furniture.Orientation.EAST ||
                 orientation == Furniture.Orientation.WEST ? depth : width)) / 2;
         double z = (room.getWidth() - (orientation == Furniture.Orientation.EAST ||
@@ -891,18 +1024,11 @@ public class FurnitureDesignApp extends JFrame {
         if (selectedFurniture != null && currentDesign != null) {
             Furniture toDelete = selectedFurniture;
             currentDesign.removeFurniture(toDelete);
-            undoManager.addFurnitureEdit(currentDesign, toDelete, false); // Record removal
+            undoManager.addFurnitureEdit(currentDesign, toDelete, false);
             setSelectedFurniture(null);
             updateStatus("Removed " + toDelete.getType());
             repaint();
         }
-
-        // String type = selectedFurniture.getType();
-        // currentDesign.getFurnitureList().remove(selectedFurniture);
-        // selectedFurniture = null;
-        // propertiesPanel.update((Graphics) null);
-        // updateStatus("Deleted " + type + " from the design");
-        // repaint();
     }
 
     public void setSelectedFurniture(Furniture f) {
@@ -942,6 +1068,7 @@ public class FurnitureDesignApp extends JFrame {
             System.err.println("Failed to set modern look and feel");
         }
 
+        FirebaseUtil.initializeFirebase();
         SwingUtilities.invokeLater(() -> {
             FurnitureDesignApp app = new FurnitureDesignApp();
             app.setOpacity(0f);
@@ -962,5 +1089,4 @@ public class FurnitureDesignApp extends JFrame {
             timer.start();
         });
     }
-
 }
