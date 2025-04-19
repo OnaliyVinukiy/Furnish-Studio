@@ -1,16 +1,21 @@
 package org.furnish;
 
 import javax.swing.*;
-
 import org.furnish.ui.FurnitureDesignApp;
 import org.furnish.utils.CloseButtonUtil;
+import org.furnish.utils.FirebaseUtil;
+import org.json.JSONObject;
 
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.net.URL;
 
 public class LoginScreen extends JFrame {
+    private JTextField usernameField;
+    private JPasswordField passwordField;
+
     public LoginScreen() {
         setTitle("Furnish Studio - Login");
         setSize(500, 700);
@@ -43,7 +48,6 @@ public class LoginScreen extends JFrame {
 
         // Close button
         JButton closeButton = CloseButtonUtil.createCloseButton();
-
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         topPanel.setOpaque(false);
         topPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
@@ -57,17 +61,12 @@ public class LoginScreen extends JFrame {
         contentPanel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
 
         // Logo
-        //ImageIcon logoIcon = new ImageIcon(getClass().getResource("./images/sofa.png"));
         ImageIcon logoIcon = null;
         URL imageUrl = getClass().getResource("/images/sofa.png");
-
         if (imageUrl != null) {
             logoIcon = new ImageIcon(imageUrl);
         } else {
-            // If image is not found, print an error and use a blank image (transparent)
             System.err.println("Image not found!");
-
-            // Create a blank (transparent) 100x100 image
             logoIcon = new ImageIcon(new BufferedImage(100, 100, BufferedImage.TYPE_INT_ARGB));
         }
         JLabel logo = new JLabel(logoIcon);
@@ -86,13 +85,13 @@ public class LoginScreen extends JFrame {
         inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
         inputPanel.setBorder(BorderFactory.createEmptyBorder(0, 30, 0, 30));
 
-        // Username field
-        JTextField usernameField = createStyledTextField("Username");
+        // Email field
+        usernameField = createStyledTextField("Email");
         inputPanel.add(usernameField);
         inputPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
         // Password field
-        JPasswordField passwordField = createStyledPasswordField("Password");
+        passwordField = createStyledPasswordField("Password");
         inputPanel.add(passwordField);
         inputPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
@@ -105,14 +104,36 @@ public class LoginScreen extends JFrame {
         loginButton.setBorder(BorderFactory.createEmptyBorder(15, 40, 15, 40));
         loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         loginButton.addActionListener(e -> {
-            String username = usernameField.getText();
+            String email = usernameField.getText();
             String password = new String(passwordField.getPassword());
 
-            if (authenticate(username, password)) {
-                new FurnitureDesignApp().setVisible(true);
-                dispose();
-            } else {
-                JOptionPane.showMessageDialog(this, "Invalid credentials!", "Error", JOptionPane.ERROR_MESSAGE);
+            // Validate inputs
+            if (email.equals("Email") || password.equals("Password")) {
+                JOptionPane.showMessageDialog(this, "Please fill in all fields!", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Validate email format
+            if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+                JOptionPane.showMessageDialog(this, "Invalid email format!", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Sign in with Firebase
+            try {
+                JSONObject response = FirebaseUtil.signIn(email, password);
+                if (response.has("idToken")) {
+                    new FurnitureDesignApp().setVisible(true);
+                    dispose();
+                } else {
+                    // Error handling
+                    String errorMessage = response.getJSONObject("error").getString("message");
+                    JOptionPane.showMessageDialog(this, "Login failed: " + errorMessage, "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (IOException | InterruptedException ex) {
+                JOptionPane.showMessageDialog(this, "Error connecting to Firebase: " + ex.getMessage(), "Error",
+                        JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -165,11 +186,9 @@ public class LoginScreen extends JFrame {
         textField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(80, 80, 110), 2),
                 BorderFactory.createEmptyBorder(15, 15, 15, 15)));
-
         textField.setCaretColor(Color.WHITE);
         textField.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Placeholder text
         textField.setText(placeholder);
         textField.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusGained(java.awt.event.FocusEvent evt) {
@@ -219,10 +238,6 @@ public class LoginScreen extends JFrame {
         });
 
         return passwordField;
-    }
-
-    private boolean authenticate(String username, String password) {
-        return username.equals("admin") && password.equals("admin123");
     }
 
     // Custom rounded button class
