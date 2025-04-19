@@ -29,7 +29,7 @@ public class FirebaseUtil {
             + API_KEY;
     private static final String SIGN_IN_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key="
             + API_KEY;
-    private static Firestore firestore;
+    public static Firestore firestore;
     private static final Executor executor;
     private static JSONObject currentUser;
 
