@@ -12,7 +12,7 @@ public class CloseButtonUtil {
         closeButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
         try {
-            ImageIcon closeIcon = new ImageIcon(CloseButtonUtil.class.getResource("../images/close.png"));
+            ImageIcon closeIcon = new ImageIcon(CloseButtonUtil.class.getResource("/images/close.png"));
             if (closeIcon.getImage() != null) {
                 closeButton.setIcon(closeIcon);
             } else {
