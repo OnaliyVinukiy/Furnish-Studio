@@ -20,10 +20,12 @@ import org.furnish.core.Design;
 import org.furnish.core.Furniture;
 import org.furnish.core.Room;
 
+import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLCapabilities;
+import com.jogamp.opengl.GLContext;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLException;
 import com.jogamp.opengl.GLProfile;
@@ -1765,6 +1767,8 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
             partPickMap.put(baseId, "body");
             drawBox(gl, x, 0, z, w, h, d);
         }
+        System.out.println("Assigning picking ID: " + baseId + " to " + f.getType());
+
     }
 
     private void setPickColor(GL2 gl, int id) {
@@ -1852,7 +1856,7 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
                     if (selectionStart != null) {
                         // Handle selection completion
                         if (selectionStart.equals(selectionEnd)) {
-                            // Click without drag - clear selection
+                            // Click without drag
                             parent.setSelectedFurniture(null);
                             for (Furniture f : design.getFurnitureList()) {
                                 f.setSelected(false);
@@ -1878,6 +1882,12 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
+
+                if (is3DView && design != null) {
+                    pickFurnitureAt(e.getX(), e.getY());
+                    setCursor(selectedFurniture != null ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                            : Cursor.getDefaultCursor());
+                }
                 if (design != null && !is3DView) {
                     float scale = Math.min(getWidth() / (float) design.getRoom().getLength(),
                             getHeight() / (float) design.getRoom().getWidth()) * 0.8f;
@@ -2016,99 +2026,106 @@ public class VisualizationPanel extends GLJPanel implements GLEventListener {
     }
 
     private void pickFurnitureAt(int x, int y) {
-        GL2 gl = getGL().getGL2();
-
-        // Initialize picking maps
-        pickMap = new HashMap<>();
-        partPickMap = new HashMap<>();
-        int pickingId = 1;
-
-        // Set up selection buffer
-        IntBuffer selectBuffer = IntBuffer.allocate(512);
-        gl.glSelectBuffer(512, selectBuffer);
-
-        // Enter selection mode
-        gl.glRenderMode(GL2.GL_SELECT);
-
-        // Initialize name stack
-        gl.glInitNames();
-        gl.glPushName(0);
-
-        // Set up picking matrix
-        IntBuffer viewport = IntBuffer.allocate(4);
-        gl.glGetIntegerv(GL2.GL_VIEWPORT, viewport);
-        gl.glMatrixMode(GL2.GL_PROJECTION);
-        gl.glPushMatrix();
-        gl.glLoadIdentity();
-        glu.gluPickMatrix(x, getHeight() - y, 5.0, 5.0, viewport);
-        float aspect = (float) getWidth() / getHeight();
-        gl.glFrustum(-aspect, aspect, -1.0, 1.0, 5.0, 60.0);
-
-        gl.glMatrixMode(GL2.GL_MODELVIEW);
-        gl.glLoadIdentity();
-        gl.glTranslatef(0.0f, 0.0f, -10.0f * zoomFactor);
-        gl.glRotatef(rotationX, 1.0f, 0.0f, 0.0f);
-        gl.glRotatef(rotationY, 0.0f, 1.0f, 0.0f);
-
-        // Draw furniture for picking
-        if (design != null) {
-            for (Furniture f : design.getFurnitureList()) {
-                pickMap.put(pickingId, f);
-                gl.glLoadName(pickingId);
-                drawFurnitureForPicking(gl, f, pickingId);
-                pickingId += 5;
-            }
+        GLAutoDrawable drawable = this;
+        boolean madeCurrent = drawable.getContext().makeCurrent() != GLContext.CONTEXT_NOT_CURRENT;
+        if (!madeCurrent) {
+            System.err.println("Failed to make OpenGL context current");
+            return;
         }
+        try {
+            GL2 gl = drawable.getGL().getGL2();
 
-        // Restore matrices
-        gl.glMatrixMode(GL2.GL_PROJECTION);
-        gl.glPopMatrix();
-        gl.glMatrixMode(GL2.GL_MODELVIEW);
+            // Initialize picking maps
+            pickMap = new HashMap<>();
+            partPickMap = new HashMap<>();
+            int pickingId = 1;
 
-        // Exit selection mode and get hits
-        int hits = gl.glRenderMode(GL2.GL_RENDER);
-        System.out.println("Picking hits: " + hits + " at (" + x + ", " + y + ")");
+            IntBuffer selectBuffer = Buffers.newDirectIntBuffer(512);
+            gl.glSelectBuffer(512, selectBuffer);
 
-        // Process hits
-        int selectedId = 0;
-        float minZ = Float.MAX_VALUE;
-        int bufferIndex = 0;
+            // Enter selection mode
+            gl.glRenderMode(GL2.GL_SELECT);
+            gl.glInitNames();
+            gl.glPushName(0);
 
-        for (int i = 0; i < hits; i++) {
-            int nameCount = selectBuffer.get(bufferIndex);
-            float z1 = (float) selectBuffer.get(bufferIndex + 1) / 0x7fffffff;
-            bufferIndex += 3;
-            for (int j = 0; j < nameCount; j++) {
-                int id = selectBuffer.get(bufferIndex + j);
-                if (z1 < minZ) {
-                    minZ = z1;
-                    selectedId = id;
+            // Set up picking matrix
+            IntBuffer viewport = IntBuffer.allocate(4);
+            gl.glGetIntegerv(GL2.GL_VIEWPORT, viewport);
+            gl.glMatrixMode(GL2.GL_PROJECTION);
+            gl.glPushMatrix();
+            gl.glLoadIdentity();
+            glu.gluPickMatrix(x, getHeight() - y, 5.0, 5.0, viewport);
+            float aspect = (float) getWidth() / getHeight();
+            gl.glFrustum(-aspect, aspect, -1.0, 1.0, 5.0, 60.0);
+
+            gl.glMatrixMode(GL2.GL_MODELVIEW);
+            gl.glLoadIdentity();
+            gl.glTranslatef(0.0f, 0.0f, -10.0f * zoomFactor);
+            gl.glRotatef(rotationX, 1.0f, 0.0f, 0.0f);
+            gl.glRotatef(rotationY, 0.0f, 1.0f, 0.0f);
+
+            // Draw furniture for picking
+            if (design != null) {
+                for (Furniture f : design.getFurnitureList()) {
+                    pickMap.put(pickingId, f);
+                    gl.glLoadName(pickingId);
+                    drawFurnitureForPicking(gl, f, pickingId);
+                    pickingId += 5;
                 }
             }
-            bufferIndex += nameCount;
-        }
 
-        // Select furniture and part
-        selectedFurniture = pickMap.get(selectedId);
-        selectedPart = partPickMap.get(selectedId);
+            // Restore matrices
+            gl.glMatrixMode(GL2.GL_PROJECTION);
+            gl.glPopMatrix();
+            gl.glMatrixMode(GL2.GL_MODELVIEW);
 
-        if (selectedFurniture != null) {
-            System.out.println("Selected furniture: " + selectedFurniture.getType() + ", part: " + selectedPart);
-            for (Furniture f : design.getFurnitureList()) {
-                f.setSelected(f == selectedFurniture);
+            // Exit selection mode and get hits
+            int hits = gl.glRenderMode(GL2.GL_RENDER);
+            System.out.println("Picking hits: " + hits + " at (" + x + ", " + y + ")");
+
+            // Process hits
+            int selectedId = 0;
+            float minZ = Float.MAX_VALUE;
+            int bufferIndex = 0;
+
+            for (int i = 0; i < hits; i++) {
+                int nameCount = selectBuffer.get(bufferIndex);
+                float z1 = (float) selectBuffer.get(bufferIndex + 1) / 0x7fffffff;
+                bufferIndex += 3;
+                for (int j = 0; j < nameCount; j++) {
+                    int id = selectBuffer.get(bufferIndex + j);
+                    if (z1 < minZ) {
+                        minZ = z1;
+                        selectedId = id;
+                    }
+                }
+                bufferIndex += nameCount;
             }
-            parent.setSelectedFurniture(selectedFurniture);
-            parent.propertiesPanel.setSelectedPart(selectedPart);
-        } else {
-            System.out.println("No furniture selected at (" + x + ", " + y + ")");
-            for (Furniture f : design.getFurnitureList()) {
-                f.setSelected(false);
-            }
-            parent.setSelectedFurniture(null);
-            parent.propertiesPanel.setSelectedPart(null);
-        }
 
-        gl.glFlush();
+            // Select furniture and part
+            selectedFurniture = pickMap.get(selectedId);
+            selectedPart = partPickMap.get(selectedId);
+
+            if (selectedFurniture != null) {
+                System.out.println("Selected furniture: " + selectedFurniture.getType() + ", part: " + selectedPart);
+                for (Furniture f : design.getFurnitureList()) {
+                    f.setSelected(f == selectedFurniture);
+                }
+                parent.setSelectedFurniture(selectedFurniture);
+                parent.propertiesPanel.setSelectedPart(selectedPart);
+            } else {
+                System.out.println("No furniture selected at (" + x + ", " + y + ")");
+                for (Furniture f : design.getFurnitureList()) {
+                    f.setSelected(false);
+                }
+                parent.setSelectedFurniture(null);
+                parent.propertiesPanel.setSelectedPart(null);
+            }
+
+            gl.glFlush();
+        } finally {
+            drawable.getContext().release();
+        }
         repaint();
     }
 
