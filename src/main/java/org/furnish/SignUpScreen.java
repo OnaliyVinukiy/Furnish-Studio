@@ -2,12 +2,22 @@ package org.furnish;
 
 import javax.swing.*;
 import org.furnish.utils.CloseButtonUtil;
+import org.furnish.utils.FirebaseUtil;
+import org.json.JSONObject;
+
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.net.URL;
 
 public class SignUpScreen extends JFrame {
+    private JTextField nameField;
+    private JTextField emailField;
+    private JTextField usernameField;
+    private JPasswordField passwordField;
+    private JPasswordField confirmPasswordField;
+
     public SignUpScreen() {
         setTitle("Furnish Studio - Sign Up");
         setSize(500, 850);
@@ -53,21 +63,14 @@ public class SignUpScreen extends JFrame {
         contentPanel.setBorder(BorderFactory.createEmptyBorder(30, 50, 30, 50));
 
         // Logo
-//        ImageIcon logoIcon = new ImageIcon(getClass().getResource("./images/sofa.png"));
-
         ImageIcon logoIcon = null;
         URL imageUrl = getClass().getResource("/images/sofa.png");
-
         if (imageUrl != null) {
             logoIcon = new ImageIcon(imageUrl);
         } else {
-            // If image is not found, print an error and use a blank image (transparent)
             System.err.println("Image not found!");
-
-            // Create a blank (transparent) 100x100 image
             logoIcon = new ImageIcon(new BufferedImage(100, 100, BufferedImage.TYPE_INT_ARGB));
         }
-
         JLabel logo = new JLabel(logoIcon);
         logo.setAlignmentX(Component.CENTER_ALIGNMENT);
 
@@ -85,27 +88,27 @@ public class SignUpScreen extends JFrame {
         inputPanel.setBorder(BorderFactory.createEmptyBorder(0, 30, 0, 30));
 
         // Full Name field
-        JTextField nameField = createStyledTextField("Full Name");
+        nameField = createStyledTextField("Full Name");
         inputPanel.add(nameField);
         inputPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Email field
-        JTextField emailField = createStyledTextField("Email");
+        emailField = createStyledTextField("Email");
         inputPanel.add(emailField);
         inputPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Username field
-        JTextField usernameField = createStyledTextField("Username");
+        usernameField = createStyledTextField("Username");
         inputPanel.add(usernameField);
         inputPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Password field
-        JPasswordField passwordField = createStyledPasswordField("Password");
+        passwordField = createStyledPasswordField("Password");
         inputPanel.add(passwordField);
         inputPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Confirm Password field
-        JPasswordField confirmPasswordField = createStyledPasswordField("Confirm Password");
+        confirmPasswordField = createStyledPasswordField("Confirm Password");
         inputPanel.add(confirmPasswordField);
         inputPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
@@ -118,19 +121,55 @@ public class SignUpScreen extends JFrame {
         signUpButton.setBorder(BorderFactory.createEmptyBorder(15, 40, 15, 40));
         signUpButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         signUpButton.addActionListener(e -> {
+            String name = nameField.getText();
+            String email = emailField.getText();
+            String username = usernameField.getText();
             String password = new String(passwordField.getPassword());
             String confirmPassword = new String(confirmPasswordField.getPassword());
+
+            // Validate inputs
+            if (name.equals("Full Name") || email.equals("Email") || username.equals("Username") ||
+                    password.equals("Password") || confirmPassword.equals("Confirm Password")) {
+                JOptionPane.showMessageDialog(this, "Please fill in all fields!", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
 
             if (!password.equals(confirmPassword)) {
                 JOptionPane.showMessageDialog(this, "Passwords do not match!", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            // Save user data
-            JOptionPane.showMessageDialog(this, "Account created successfully!", "Success",
-                    JOptionPane.INFORMATION_MESSAGE);
-            new LoginScreen().setVisible(true);
-            dispose();
+            if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+                JOptionPane.showMessageDialog(this, "Invalid email format!", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if (password.length() < 6) {
+                JOptionPane.showMessageDialog(this, "Password must be at least 6 characters!", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Sign up with Firebase
+            try {
+                JSONObject response = FirebaseUtil.signUp(email, password);
+                if (response.has("idToken")) {
+                    String uid = response.getString("localId");
+                    // Save additional user data
+                    FirebaseUtil.saveUserData(uid, name, username, email);
+                    JOptionPane.showMessageDialog(this, "Account created successfully!", "Success",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    new LoginScreen().setVisible(true);
+                    dispose();
+                } else {
+                    String errorMessage = response.getJSONObject("error").getString("message");
+                    JOptionPane.showMessageDialog(this, "Signup failed: " + errorMessage, "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (IOException | InterruptedException ex) {
+                JOptionPane.showMessageDialog(this, "Error connecting to Firebase: " + ex.getMessage(), "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
         });
 
         // Login prompt
@@ -185,7 +224,6 @@ public class SignUpScreen extends JFrame {
         textField.setCaretColor(Color.WHITE);
         textField.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Placeholder text
         textField.setText(placeholder);
         textField.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusGained(java.awt.event.FocusEvent evt) {
