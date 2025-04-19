@@ -423,38 +423,6 @@ public class FurnitureDesignApp extends JFrame {
         toolBar.add(saveButton);
 
         toolBar.addSeparator();
-
-        JButton chairButton = createToolbarButton("Chair", "/images/box.png");
-        JPopupMenu chairPopup = new JPopupMenu();
-        JMenuItem standardChair = new JMenuItem("Standard Chair");
-        JMenuItem armchair = new JMenuItem("Armchair");
-        JMenuItem diningChair = new JMenuItem("Dining Chair");
-
-        standardChair.addActionListener(e -> addFurniture("Chair", "Standard"));
-        armchair.addActionListener(e -> addFurniture("Chair", "Armchair"));
-        diningChair.addActionListener(e -> addFurniture("Chair", "Dining"));
-
-        chairPopup.add(standardChair);
-        chairPopup.add(armchair);
-        chairPopup.add(diningChair);
-
-        chairButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                chairPopup.show(chairButton, e.getX(), e.getY());
-            }
-        });
-        toolBar.add(chairButton);
-
-        JButton tableButton = createToolbarButton("Table", "/images/close.png");
-        tableButton.addActionListener(e -> addFurniture("Table", ""));
-        toolBar.add(tableButton);
-
-        JButton sofaButton = createToolbarButton("Sofa", "/images/close.png");
-        sofaButton.addActionListener(e -> addFurniture("Sofa", ""));
-
-        toolBar.add(sofaButton);
-
         toolBar.addSeparator();
 
         view2D3DToggle = new JToggleButton("3D View", loadResizedIcon("/images/3d.png", 20, 20));
