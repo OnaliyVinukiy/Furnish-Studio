@@ -1,11 +1,15 @@
 package org.furnish.utils;
 
+import com.google.api.core.ApiFuture;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
 import com.google.cloud.firestore.WriteResult;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -27,9 +31,11 @@ public class FirebaseUtil {
             + API_KEY;
     private static Firestore firestore;
     private static final Executor executor;
+    private static JSONObject currentUser;
 
     static {
         executor = Executors.newFixedThreadPool(2);
+        currentUser = null;
     }
 
     public static void initializeFirebase() {
@@ -93,7 +99,14 @@ public class FirebaseUtil {
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        return new JSONObject(response.body());
+        JSONObject result = new JSONObject(response.body());
+        if (result.has("idToken")) {
+            currentUser = new JSONObject()
+                    .put("uid", result.getString("localId"))
+                    .put("email", email);
+            System.out.println("Signed up user with UID: " + result.getString("localId"));
+        }
+        return result;
     }
 
     public static JSONObject signIn(String email, String password) throws IOException, InterruptedException {
@@ -110,7 +123,14 @@ public class FirebaseUtil {
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        return new JSONObject(response.body());
+        JSONObject result = new JSONObject(response.body());
+        if (result.has("idToken")) {
+            currentUser = new JSONObject()
+                    .put("uid", result.getString("localId"))
+                    .put("email", email);
+            System.out.println("Signed in user with UID: " + result.getString("localId"));
+        }
+        return result;
     }
 
     public static void saveUserData(String uid, String name, String username, String email, String role) {
@@ -127,9 +147,8 @@ public class FirebaseUtil {
         userData.put("role", role);
 
         try {
-            // Perform the write operation and block until completion
             WriteResult result = firestore.collection("users").document(uid).set(userData).get();
-            System.out.println("User data saved successfully at " + result.getUpdateTime());
+            System.out.println("User data saved successfully for UID " + uid + " at " + result.getUpdateTime());
         } catch (Exception e) {
             System.err.println("Failed to save user data: " + e.getMessage());
             e.printStackTrace();
@@ -150,5 +169,44 @@ public class FirebaseUtil {
             System.err.println("Firestore test failed: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    public static JSONObject getUserData(String uid) {
+        if (firestore == null) {
+            JSONObject error = new JSONObject();
+            error.put("error", "Firestore is not initialized");
+            return error;
+        }
+
+        try {
+            DocumentReference docRef = firestore.collection("users").document(uid);
+            ApiFuture<DocumentSnapshot> future = docRef.get();
+            DocumentSnapshot document = future.get();
+            if (document.exists()) {
+                JSONObject userData = new JSONObject();
+                userData.put("name", document.getString("name"));
+                userData.put("username", document.getString("username"));
+                userData.put("email", document.getString("email"));
+                userData.put("role", document.getString("role"));
+                return userData;
+            } else {
+                JSONObject error = new JSONObject();
+                error.put("error", "User data not found for UID: " + uid);
+                return error;
+            }
+        } catch (Exception e) {
+            JSONObject error = new JSONObject();
+            error.put("error", "Failed to fetch user data: " + e.getMessage());
+            return error;
+        }
+    }
+
+    public static JSONObject getCurrentUser() {
+        return currentUser;
+    }
+
+    public static void clearCurrentUser() {
+        currentUser = null;
+        System.out.println("Current user cleared");
     }
 }
