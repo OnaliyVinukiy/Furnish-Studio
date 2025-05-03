@@ -1,118 +1,92 @@
-# Furniture Design App
-![Java](https://img.shields.io/badge/Java-22-orange)
-![Swing](https://img.shields.io/badge/UI-Swing-blue)
+# Furnish Design Studio
 
-The **Furniture Design App** is a Java-based desktop application built using the Swing framework. It allows users to create virtual room designs, add furniture (chairs and tables), and visualize them in both 2D and 3D views. Users can customize furniture properties such as position, size, color, and shading, and save or load their designs.
+Furnish Design Studio is a web application built with React that allows users to design and visualize interior spaces. Users can define room dimensions, select furniture from a catalog, arrange items in a 2D canvas, and view their creations in an interactive 3D environment.
 
 ## Features
 
-- **Room Creation**: Define room dimensions and colors for the floor and walls.
-- **Furniture Placement**: Add chairs and tables with customizable properties.
-- **2D View**: A top-down view of the room and furniture layout.
-- **3D View**: An isometric 3D view with rotation capabilities using mouse dragging.
-- **Furniture Manipulation**: Drag furniture in 2D mode and adjust properties via a panel.
-- **Save/Load Designs**: Serialize and deserialize room designs to/from files.
-- **Properties Panel**: Edit furniture position (X, Z), size (width, depth, height), color, and shade.
+* **Room Setup**: Define custom room dimensions (width, length, height).
+* **Customization**: Choose wall colors, floor colors, and floor types (tile, carpet, textured material) with various texture options.
+* **Room Templates**: Start quickly with predefined templates for Living Room, Bedroom, Home Office, and Dining Room, complete with default furniture and suggested styles.
+* **2D Design Interface**:
+    * Drag-and-drop furniture items from a catalog onto a 2D canvas representation of the room.
+    * Position and arrange furniture items easily.
+    * Customize the color of individual furniture pieces.
+* **3D Visualization**:
+    * View the 2D design in an interactive 3D space.
+    * Orbit controls allow viewing the room from different angles.
+    * Drag furniture items directly within the 3D view.
+    * Adjust the scale and rotation of furniture in the 3D view.
+* **Furniture Catalog**: Includes various furniture items like chairs (dining, arm, stool, computer), tables (dining, coffee), beds (single, double), sofas, dressers, nightstands, and bookshelves.
 
-## Prerequisites
+## Technologies Used
 
-- **Java Development Kit (JDK)**: Version 20 or higher recommended.
-- **IDE**: Any Java-compatible IDE (e.g., IntelliJ IDEA, Eclipse) or a simple text editor with a command-line compiler.
+* **Frontend Framework**: React [cite: 3]
+* **Routing**: React Router [cite: 3]
+* **Styling**: Tailwind CSS[cite: 3, 6], configured using Craco [cite: 1, 3] and PostCSS[cite: 4].
+* **2D Canvas**: Konva / React Konva [cite: 3]
+* **3D Rendering**: Three.js via @react-three/fiber and @react-three/drei [cite: 3]
+* **State Management**: React Hooks (useState, useEffect, useRef, etc.)
 
-## Installation
+## Getting Started
 
-1. **Clone or Download the Project**:
-   - Clone this repository or download the source code as a ZIP file.
-   - Extract the files to a directory of your choice.
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
-2. **Open in an IDE**:
-   - Import the project into your preferred IDE as a Java project.
-   - Ensure the package structure (`org.furnish`) is maintained.
+### Prerequisites
 
-3. **Compile and Run**:
-   - Compile the project using your IDE’s build tools.
-   - Run the `FurnitureDesignApp` class (contains the `main` method).
+* Node.js (>=14.0.0 recommended based on `react-scripts` requirement [cite: 3])
+* npm
 
-   Alternatively, from the command line:
-   ```bash
-   javac org/Ghapurachchi/FurnitureDesignApp.java
-   java org.furnish.FurnitureDesignApp
-   ```
+### Installation
 
-## Usage
+1.  Clone the repository:
+    ```bash
+    git clone <repository-url>
+    cd furnish-design-studio
+    ```
+2.  Install NPM packages:
+    ```bash
+    npm install
+    ```
 
-1. **Starting the App**:
-   - Launch the application to see the main window with a menu bar.
+## Available Scripts
 
-2. **Creating a New Design**:
-   - Go to `File > New` to open the "New Room" dialog.
-   - Enter room dimensions (length, width, height) and choose colors for the floor and walls.
-   - Click "OK" to create the room.
+In the project directory, you can run:
 
-3. **Adding Furniture**:
-   - Use `Edit > Add Chair` or `Edit > Add Table` to place furniture in the room.
-   - Furniture appears at a default position (X: 1.0, Z: 1.0).
+### `npm start`
 
-4. **Switching Views**:
-   - Select `View > 2D View` for a top-down perspective.
-   - Select `View > 3D View` for an isometric 3D view.
+Runs the app in development mode using Craco[cite: 3].
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
-5. **Interacting with Furniture**:
-   - In 2D mode: Click and drag furniture to reposition it within the room boundaries.
-   - In 3D mode: Click and drag empty space to rotate the view; furniture dragging is disabled in this mode.
-   - Select furniture by clicking it to edit its properties in the right panel.
+The page will reload when you make changes. Lint errors may also appear in the console.
 
-6. **Editing Properties**:
-   - Use the "Properties" panel to adjust:
-     - **X, Z**: Position in the room.
-     - **Width, Depth, Height**: Size of the furniture.
-     - **Color**: Choose a new color using the color chooser.
-     - **Shade**: Adjust brightness with the slider (0% dark, 100% full brightness).
+### `npm test`
 
-7. **Saving and Loading**:
-   - Save your design via `File > Save` and choose a file location.
-   - Load a saved design via `File > Open`.
+Launches the test runner in interactive watch mode using Craco[cite: 3].
 
-8. **Deleting Furniture**:
-   - Select a piece of furniture and click `Edit > Delete Selected` to remove it.
+### `npm run build`
+
+Builds the app for production to the `build` folder using Craco[cite: 3].
+It correctly bundles React in production mode and optimizes the build for the best performance.
+
+The build is minified and the filenames include the hashes. Your app is ready to be deployed!
+
+### `npm run eject`
+
+**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+
+This command will remove the single build dependency (`react-scripts`) but keeps Craco configuration. It copies configuration files and transitive dependencies (webpack, Babel, ESLint, etc.) into your project for full control[cite: 3, 5].
 
 ## Project Structure
 
-```
-src/
-└── org/
-    └── Ghapurachchi/
-        ├── FurnitureDesignApp.java  # Main application frame and entry point
-        ├── Room.java               # Represents a room with dimensions and colors
-        ├── Furniture.java          # Represents furniture with properties
-        ├── Design.java             # Holds room and furniture data
-        ├── VisualizationPanel.java # Handles 2D/3D rendering and interactions
-        ├── PropertiesPanel.java    # UI for editing furniture properties
-        └── RoomDialog.java         # Dialog for creating a new room
-```
-
-## Limitations
-
-- **3D Rendering**: Uses a simple isometric projection without depth sorting, which may cause visual overlap issues.
-- **Furniture Dragging in 3D**: Not implemented; dragging is limited to 2D mode.
-- **Basic Graphics**: Relies on Swing’s `Graphics2D` for rendering, lacking advanced 3D capabilities.
-
-## Future Improvements
-
-- Implement depth sorting (e.g., painter’s algorithm or Z-buffer) for accurate 3D rendering.
-- Add furniture dragging in 3D mode with proper perspective adjustments.
-- Integrate a camera system for zooming and panning in 3D view.
-- Enhance furniture types with more detailed models (e.g., sofas, shelves).
-- Use a 3D library like Java3D or JOGL for improved graphics performance.
-
-## Contributing
-
-Feel free to fork this repository, make improvements, and submit pull requests. Suggestions and bug reports are welcome via issues.
-
-## License
-
-This project is open-source and available under the [MIT License](LICENSE).
-
----
-
-You can copy this text into a `README.md` file in your project directory. If you need any modifications or additional sections (e.g., screenshots, specific build instructions), let me know!
+* `public/`: Contains static assets and the main `index.html` file.
+* `src/`: Contains the main React application code.
+    * `components/`: (Likely location for reusable UI components - *inferred*)
+    * `pages/`: Contains page-level components corresponding to different views (HomePage, RoomSetup, DesignPage, ThreeDView).
+    * `assets/`: Contains static assets like images, 3D models, textures.
+    * `App.jsx`: Main application component setting up routing.
+    * `index.js`: Entry point of the React application[cite: 10].
+    * `index.css`: Base Tailwind CSS setup[cite: 9].
+* `craco.config.js`: Configuration for Craco to override Create React App settings (used for Tailwind)[cite: 1].
+* `tailwind.config.js`: Configuration file for Tailwind CSS[cite: 6].
+* `postcss.config.js`: Configuration file for PostCSS (used with Tailwind)[cite: 4].
+* `package.json`: Project metadata and dependencies[cite: 3].
