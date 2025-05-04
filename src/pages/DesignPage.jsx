@@ -172,7 +172,9 @@ function RoomDesignPage() {
   const navigate = useNavigate();
   const stageRef = useRef(null);
 
+  // Scaling factors
   const scale = 10;
+  const roomScale = 25;
 
   const textureOptions = {
     tile: [
@@ -326,8 +328,17 @@ function RoomDesignPage() {
 
   const handleDragEnd = (e, id) => {
     const node = e.target;
+    const scaleFactor = roomScale / scale;
     setFurniture((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, x: node.x(), y: node.y() } : f))
+      prev.map((f) =>
+        f.id === id
+          ? {
+              ...f,
+              x: node.x() / scaleFactor,
+              y: node.y() / scaleFactor,
+            }
+          : f
+      )
     );
   };
 
@@ -627,16 +638,16 @@ function RoomDesignPage() {
                 <div className="bg-gray-100 rounded-2xl overflow-hidden">
                   <Stage
                     ref={stageRef}
-                    width={dimensions.width * scale}
-                    height={dimensions.length * scale}
+                    width={dimensions.width * roomScale}
+                    height={dimensions.length * roomScale}
                     style={{ backgroundColor: wallColor }}
                   >
                     <Layer>
                       <Rect
                         x={0}
                         y={0}
-                        width={dimensions.width * scale}
-                        height={dimensions.length * scale}
+                        width={dimensions.width * roomScale}
+                        height={dimensions.length * roomScale}
                         fill={floorColor}
                         stroke="black"
                         strokeWidth={2}
@@ -644,8 +655,8 @@ function RoomDesignPage() {
                       {furniture.map((item) => (
                         <React.Fragment key={item.id}>
                           <Rect
-                            x={item.x}
-                            y={item.y}
+                            x={item.x * (roomScale / scale)}
+                            y={item.y * (roomScale / scale)}
                             width={item.width}
                             height={item.length}
                             fill={item.color}
@@ -655,8 +666,8 @@ function RoomDesignPage() {
                             onDragEnd={(e) => handleDragEnd(e, item.id)}
                           />
                           <Text
-                            x={item.x}
-                            y={item.y + item.length / 2}
+                            x={item.x * (roomScale / scale)}
+                            y={item.y * (roomScale / scale) + item.length / 2}
                             width={item.width}
                             align="center"
                             text={item.name}
