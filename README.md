@@ -20,11 +20,11 @@ Furnish Design Studio is a web application built with React that allows users to
 
 ## Technologies Used
 
-* **Frontend Framework**: React [cite: 3]
-* **Routing**: React Router [cite: 3]
-* **Styling**: Tailwind CSS[cite: 3, 6], configured using Craco [cite: 1, 3] and PostCSS[cite: 4].
-* **2D Canvas**: Konva / React Konva [cite: 3]
-* **3D Rendering**: Three.js via @react-three/fiber and @react-three/drei [cite: 3]
+* **Frontend Framework**: React
+* **Routing**: React Router
+* **Styling**: Tailwind CSS, configured using Craco and PostCSS.
+* **2D Canvas**: Konva / React Konva
+* **3D Rendering**: Three.js via @react-three/fiber and @react-three/drei
 * **State Management**: React Hooks (useState, useEffect, useRef, etc.)
 
 ## Getting Started
@@ -33,14 +33,14 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-* Node.js (>=14.0.0 recommended based on `react-scripts` requirement [cite: 3])
+* Node.js (>=14.0.0 recommended based on `react-scripts` requirement)
 * npm
 
 ### Installation
 
 1.  Clone the repository:
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/HGWhappuarachchi/FurnishDesignStudio.git
     cd furnish-design-studio
     ```
 2.  Install NPM packages:
@@ -61,11 +61,11 @@ The page will reload when you make changes. Lint errors may also appear in the c
 
 ### `npm test`
 
-Launches the test runner in interactive watch mode using Craco[cite: 3].
+Launches the test runner in interactive watch mode using Craco.
 
 ### `npm run build`
 
-Builds the app for production to the `build` folder using Craco[cite: 3].
+Builds the app for production to the `build` folder using Craco.
 It correctly bundles React in production mode and optimizes the build for the best performance.
 
 The build is minified and the filenames include the hashes. Your app is ready to be deployed!
@@ -74,7 +74,7 @@ The build is minified and the filenames include the hashes. Your app is ready to
 
 **Note: this is a one-way operation. Once you `eject`, you can't go back!**
 
-This command will remove the single build dependency (`react-scripts`) but keeps Craco configuration. It copies configuration files and transitive dependencies (webpack, Babel, ESLint, etc.) into your project for full control[cite: 3, 5].
+This command will remove the single build dependency (`react-scripts`) but keeps Craco configuration. It copies configuration files and transitive dependencies (webpack, Babel, ESLint, etc.) into your project for full control.
 
 ## Project Structure
 
