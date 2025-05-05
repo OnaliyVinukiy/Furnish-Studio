@@ -417,7 +417,7 @@ function RoomTestDesignPage() {
   };
 
   const goTo3DView = () => {
-    navigate("/3d-view", {
+    navigate("/test3dView", {
       state: {
         room: {
           dimensions: {
