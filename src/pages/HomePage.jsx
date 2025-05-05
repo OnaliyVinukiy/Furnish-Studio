@@ -1,13 +1,43 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import LoginModal from "./components/LoginModel";
 
 function HomePage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const [showLogin, setShowLogin] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    console.log(`email: ${email} and password: ${password}`);
+    navigate("/design");
+
+    setTimeout(() => {
+      setIsLoading(false);
+      setShowLogin(false);
+    }, 1500);
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50 font-sans">
+      {showLogin && (
+        <LoginModal
+          setShowLogin={setShowLogin}
+          setEmail={setEmail}
+          setPassword={setPassword}
+          handleLogin={handleLogin}
+          isLoading={isLoading}
+          email={email}
+          password={password}
+        />
+      )}
+
       {/* Navigation */}
       <nav className="bg-white shadow-lg fixed w-full z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,7 +82,10 @@ function HomePage() {
               >
                 Gallery
               </a>
-              <button className="px-4 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors duration-300 flex items-center gap-2">
+              <button
+                onClick={() => setShowLogin(true)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors duration-300 flex items-center gap-2"
+              >
                 <svg
                   className="h-4 w-4"
                   fill="none"
@@ -123,7 +156,13 @@ function HomePage() {
               >
                 Gallery
               </a>
-              <button className="w-full px-4 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 flex items-center justify-center gap-2">
+              <button
+                onClick={() => {
+                  setShowLogin(true);
+                  setIsMenuOpen(false);
+                }}
+                className="w-full px-4 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 flex items-center justify-center gap-2"
+              >
                 <svg
                   className="h-4 w-4"
                   fill="none"
@@ -143,7 +182,6 @@ function HomePage() {
           </div>
         )}
       </nav>
-
       {/* Hero Section */}
       <div className="pt-20 bg-gradient-to-br from-indigo-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 grid lg:grid-cols-2 gap-12 items-center">
@@ -180,7 +218,6 @@ function HomePage() {
           </div>
         </div>
       </div>
-
       {/* Features Section */}
       <div id="features" className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -280,7 +317,6 @@ function HomePage() {
           </div>
         </div>
       </div>
-
       {/* How It Works Section */}
       <div
         id="how-it-works"
@@ -347,7 +383,6 @@ function HomePage() {
           </div>
         </div>
       </div>
-
       {/* Gallery Section */}
       <div id="gallery" className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -423,7 +458,6 @@ function HomePage() {
           </div>
         </div>
       </div>
-
       {/* CTA Section */}
       <div className="bg-gradient-to-r from-indigo-700 to-indigo-900 py-16">
         <div className="max-w-2xl mx-auto text-center px-4 sm:px-6 lg:px-8">
@@ -454,7 +488,6 @@ function HomePage() {
           </a>
         </div>
       </div>
-
       {/* Footer */}
       <footer className="bg-gray-900 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
