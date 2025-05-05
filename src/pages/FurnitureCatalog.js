@@ -4,20 +4,6 @@ export const furnitureCatalog = [
     name: "Chair",
     subtypes: [
       {
-        id: "dining-chair",
-        name: "Dining Chair",
-        width: 2,
-        length: 2,
-        color: "#8B4513",
-        models: [
-          {
-            id: "dining-chair-model",
-            name: "Dining Chair Model",
-            path: "/assets/3d-models/dining-chair.gltf",
-          },
-        ],
-      },
-      {
         id: "arm-chair",
         name: "Arm Chair",
         width: 8,
@@ -34,8 +20,8 @@ export const furnitureCatalog = [
       {
         id: "stool",
         name: "Stool",
-        width: 6,
-        length: 6,
+        width: 5,
+        length: 5,
         color: "#A52A2A",
         models: [
           {
@@ -92,19 +78,21 @@ export const furnitureCatalog = [
   {
     id: "table",
     name: "Table",
-    width: 6,
-    length: 3,
-    color: "#4682B4",
-    models: [
+
+    subtypes: [
       {
-        id: "table-dining",
+        id: "dining-table",
         name: "Dining Table",
-        path: "/assets/3d-models/table-dining.gltf",
-      },
-      {
-        id: "table-coffee",
-        name: "Coffee Table",
-        path: "/assets/3d-models/table-coffee.gltf",
+        width: 20,
+        length: 20,
+        color: "#4682B4",
+        models: [
+          {
+            id: "dining-table-model",
+            name: "Dining Table Model",
+            path: "/assets/3d-models/dining/dining.gltf",
+          },
+        ],
       },
     ],
   },
