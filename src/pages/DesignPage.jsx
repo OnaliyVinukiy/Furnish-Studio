@@ -417,12 +417,21 @@ function RoomDesignPage() {
             Furnish Studio
           </span>
         </div>
-        <Link
-          to="/"
-          className="px-4 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700"
-        >
-          Back to Home
-        </Link>
+
+        <div className="flex gap-2">
+          <Link
+            to="/testDesign"
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300"
+          >
+            Test Design
+          </Link>
+          <Link
+            to="/"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700"
+          >
+            Back to Home
+          </Link>
+        </div>
       </header>
 
       <div className="max-w-6xl mx-auto">
