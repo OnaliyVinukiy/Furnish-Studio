@@ -791,7 +791,7 @@ function TestThreeDView() {
           </span>
         </div>
         <Link
-          to="/testDesign"
+          to="/design"
           className="px-4 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors duration-200"
         >
           Back to 2D Design
